@@ -1,0 +1,4 @@
+I was reading a JNeuro paper there (Purcell et al, 2012). It's interesting stuff, if a little mathsy. 
+Anyway, they have what might be an even better method of onset detection. It's basically the same as the one
+I gave you with the sliding t-tests but this time going backwards in time from peak and finding the first time 
+window which becomes non-significant in terms of its relationship to zero, and the next 10 samples are also non-significant. 

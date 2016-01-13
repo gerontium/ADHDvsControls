@@ -1,0 +1,160 @@
+---
+title: "ADHD_Control_Markdown_Resp_locked_ERP"
+author: "Daniel Newman"
+date: "12 Dec 2015"
+output:
+  html_document:
+    fig_width: 8
+    keep_md: yes
+  word_document: default
+---
+
+
+
+```{r Load and Pre-Process the single trial data_Resp_locked_ERP, echo=FALSE, include=FALSE}
+
+setwd(("C:/GitHub/ADHDvsControls/Analyses Scripts_R"))
+# setwd(("C:/Users/Dan/Documents/GitHub/ADHDvsControls/Analyses Scripts_R"))
+
+
+
+## Install relevant libraries 
+library(foreign)
+library(car)
+library(nlme)
+library(ggplot2)
+library(pastecs)
+library(psych)
+library(plyr)
+library(multcomp)
+library(reshape2)
+library(compute.es)
+library(ez)
+library(lattice)
+library(lme4)
+library(png)
+library(grid)
+
+###### Import single trial data_Resp_locked_ERP:
+# data_Resp_locked_ERP <-read.csv("C:/GitHub/ADHDvsControls/Analyses Scripts_Matlab/master_matrix_R_Resp_locked_ERP.csv", header=FALSE)
+
+data_Resp_locked_ERP <- read.csv("C:/Users/Dan/Documents/GitHub/ADHDvsControls/Analyses Scripts_Matlab/master_matrix_R_Resp_locked_ERP.csv", header=FALSE)
+#Import IDs:
+# ID <- read.table("C:/GitHub/ADHDvsControls/Analyses Scripts_Matlab/ID_vector_Resp_locked_ERP.csv", quote="\"")
+ID <- read.table("C:/Users/Dan/Documents/GitHub/ADHDvsControls/Analyses Scripts_Matlab/ID_vector_Resp_locked_ERP.csv", quote="\"")
+
+
+data_Resp_locked_ERP$ID<-data_Resp_locked_ERP[,1]
+#Replace the participant numbers with IDs:
+data_Resp_locked_ERP[,1]<-ID[,1]
+#Remove the seperate ID vector now it has been included into data_Resp_locked_ERP dataframe
+drops <- c("ID")
+data_Resp_locked_ERP<-data_Resp_locked_ERP[,!(names(data_Resp_locked_ERP) %in% drops)]
+rm(ID)
+rm(drops)
+
+
+
+#Rename data_Resp_locked_ERP columns:
+data_Resp_locked_ERP<-rename(data_Resp_locked_ERP, c("V1"="ID", "V2"="Group","V3"="TotalTrialNumber","V4"="Trial","V5"="ITI",
+                     "V6"="Hemifield","V7"="Accuracy","V8"="RT",
+                     "V9"="Blinkneg100_100PR",
+                     "V10"="LeftFixBreakneg100_100PR",
+                     "V11"="RightFixBreakneg100_100PR",
+                     "V12"="BothFixBreakneg100_100PR",
+                     "V13"="Art_neg100_100PR",
+                     "V14"="RejectedTrial","V15"="PupilDiameter",
+                     "V16"="CPP", "V17"="Time")) #, "V30"="Time"
+             
+#Make the required columns into factors:
+data_Resp_locked_ERP$Group <- factor(data_Resp_locked_ERP$Group)
+data_Resp_locked_ERP$ITI <- factor(data_Resp_locked_ERP$ITI)
+data_Resp_locked_ERP$Hemifield <- factor(data_Resp_locked_ERP$Hemifield)
+# data_Resp_locked_ERP$Trial <- factor(data_Resp_locked_ERP$Trial)
+data_Resp_locked_ERP$Accuracy <- factor(data_Resp_locked_ERP$Accuracy)
+# data_Resp_locked_ERP$Time <- factor(data_Resp_locked_ERP$Time)
+
+#Rename factor Levels:
+data_Resp_locked_ERP$Group <- revalue(data_Resp_locked_ERP$Group, c("1"="ADHD", "2"="Control"))
+data_Resp_locked_ERP$ITI <- revalue(data_Resp_locked_ERP$ITI, c("1"="3060ms", "2"="5170ms", "3"="7290ms"))
+data_Resp_locked_ERP$Hemifield <- revalue(data_Resp_locked_ERP$Hemifield, c("1"="Left", "2"="Right"))
+# data_Resp_locked_ERP$Sex <- revalue(data_Resp_locked_ERP$Sex, c("1"="Male", "2"="Female"))
+data_Resp_locked_ERP$Accuracy <- revalue(data_Resp_locked_ERP$Accuracy, c("1"="Hit", "0"="Miss"))
+
+
+#Re-class required vectors into Logicals:
+data_Resp_locked_ERP$Blinkneg100_100PR<-as.logical(data_Resp_locked_ERP$Blinkneg100_100PR)
+data_Resp_locked_ERP$LeftFixBreakneg100_100PR<-as.logical(data_Resp_locked_ERP$LeftFixBreakneg100_100PR)
+data_Resp_locked_ERP$RightFixBreakneg100_100PR<-as.logical(data_Resp_locked_ERP$RightFixBreakneg100_100PR)
+data_Resp_locked_ERP$BothFixBreakneg100_100PR<-as.logical(data_Resp_locked_ERP$BothFixBreakneg100_100PR)
+data_Resp_locked_ERP$BothFixBreakneg100_100PR<-as.logical(data_Resp_locked_ERP$BothFixBreakneg100_100PR)
+data_Resp_locked_ERP$Art_neg100_100PR<-as.logical(data_Resp_locked_ERP$Art_neg100_100PR)
+data_Resp_locked_ERP$RejectedTrial<-as.logical(data_Resp_locked_ERP$RejectedTrial)
+
+                     
+                     
+#Order any ordinal factors :
+data_Resp_locked_ERP$ITI <- ordered(data_Resp_locked_ERP$ITI, levels = c("3060ms", "5170ms", "7290ms"))  
+
+
+###############Data Cleaning For Single Trial data_Resp_locked_ERP######################
+
+#Remove rejected trials with trigger conflicts 
+data_Resp_locked_ERP<-data_Resp_locked_ERP[!data_Resp_locked_ERP$RejectedTrial,]
+#Remove trials where RT=0 (i.e. they did not respond)
+data_Resp_locked_ERP<-data_Resp_locked_ERP[data_Resp_locked_ERP$RT!=0,]
+#Remove trials where RT longer than 1000ms (i.e. after target finished)
+data_Resp_locked_ERP<-data_Resp_locked_ERP[data_Resp_locked_ERP$RT<2000,]
+#Remove trials where RT faster than 100ms (i.e. too fast must be false alarm)
+data_Resp_locked_ERP<-data_Resp_locked_ERP[data_Resp_locked_ERP$RT>200,]
+#Remove trials with missing values :
+data_Resp_locked_ERP<-data_Resp_locked_ERP[complete.cases(data_Resp_locked_ERP),] 
+
+
+```
+
+
+
+##Plot Resp-locked CPP:
+
+```{r, message=FALSE}
+
+#CPP
+
+data_Resp_locked_ERP2<-data_Resp_locked_ERP[!data_Resp_locked_ERP$Blinkneg100_100PR & !data_Resp_locked_ERP$LeftFixBreakneg100_100PR & !data_Resp_locked_ERP$RightFixBreakneg100_100PR & !data_Resp_locked_ERP$Art_neg100_100PR & !data_Resp_locked_ERP$BothFixBreakneg100_100PR, ]
+
+data_Resp_locked_ERP2<-data_Resp_locked_ERP2[data_Resp_locked_ERP2$Accuracy=="Hit",]
+
+source("summarySE.R") 
+source("summarySEwithin.R") #function to calculate Std.Er of mean
+source("normDataWithin.R")
+plotdata_CPP <- summarySEwithin(data_Resp_locked_ERP2, measurevar="CPP", betweenvars=c("Group"), withinvars=c("Time", "Hemifield"), idvar="ID")
+plotdata_CPP$Time<-as.numeric(as.character(plotdata_CPP$Time))
+summary(plotdata_CPP$Time)
+
+#CPP Group on same plot
+RespLockedCPP_Plot<-ggplot(plotdata_CPP, aes(x=Time, y=CPP, color=Hemifield,fill=Hemifield, linetype=Group)) + 
+    geom_line(size=1.4) + geom_ribbon(aes(ymin=CPP-se, ymax=CPP+se), alpha = 0.3, colour=NA) + #geom_errorbar(aes(ymin=CPP-se, ymax=CPP+se), alpha = 0.1) +  
+        geom_hline(yintercept=0, alpha = 0.5) + geom_vline(xintercept=0, alpha = 0.5) +   
+    coord_cartesian(ylim = c(-0.5, 12),  xlim = c(-800, 100)) +
+    xlab("Time") + ylab("CPP (uV)") +
+    theme(axis.title.x = element_text(face="bold", size=12),
+          axis.text.x  = element_text(face="bold", angle=0,  size=12)) +
+    theme(axis.title.y = element_text(face="bold", size=12),
+          axis.text.y  = element_text(angle=0, vjust=0.5, size=12)) +
+    theme(legend.title = element_text(size=11, face="bold")) +
+    theme(legend.text = element_text(size = 11, face = "bold")) +
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+          panel.background = element_blank(), axis.line = element_line(colour = "black"))
+
+RespLockedCPP_Plot
+
+
+
+save(RespLockedCPP_Plot, file="RespLockedCPP_Plot.gg")
+
+```
+
+
+
+

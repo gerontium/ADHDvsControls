@@ -1,0 +1,265 @@
+---
+title: "ADHD_Control_Markdown_Stim_locked_ERP"
+author: "Daniel Newman"
+date: "12 Dec 2015"
+output:
+  html_document:
+    fig_width: 8
+    keep_md: yes
+  word_document: default
+---
+
+
+
+```{r Load and Pre-Process the single trial data_Stim_locked_ERP, echo=FALSE, include=FALSE}
+
+setwd(("C:/GitHub/ADHDvsControls/Analyses Scripts_R"))
+# setwd(("C:/Users/Dan/Documents/GitHub/ADHDvsControls/Analyses Scripts_R"))
+
+
+
+## Install relevant libraries 
+library(foreign)
+library(car)
+library(nlme)
+library(ggplot2)
+library(pastecs)
+library(psych)
+library(plyr)
+library(multcomp)
+library(reshape2)
+library(compute.es)
+library(ez)
+library(lattice)
+library(lme4)
+library(png)
+library(grid)
+
+###### Import single trial data_Stim_locked_ERP:
+data_Stim_locked_ERP <-read.csv("C:/GitHub/ADHDvsControls/Analyses Scripts_Matlab/master_matrix_R_Stim_locked_ERP.csv", header=FALSE)
+
+# data_Stim_locked_ERP <- read.csv("C:/Users/Dan/Documents/GitHub/ADHDvsControls/Analyses Scripts_Matlab/master_matrix_R_Stim_locked_ERP.csv", header=FALSE)
+#Import IDs:
+ID <- read.table("C:/GitHub/ADHDvsControls/Analyses Scripts_Matlab/ID_vector_Stim_locked_ERP.csv", quote="\"")
+# ID <- read.table("C:/Users/Dan/Documents/GitHub/ADHDvsControls/Analyses Scripts_Matlab/ID_vector_Stim_locked_ERP.csv", quote="\"")
+
+
+data_Stim_locked_ERP$ID<-data_Stim_locked_ERP[,1]
+#Replace the participant numbers with IDs:
+data_Stim_locked_ERP[,1]<-ID[,1]
+#Remove the seperate ID vector now it has been included into data_Stim_locked_ERP dataframe
+drops <- c("ID")
+data_Stim_locked_ERP<-data_Stim_locked_ERP[,!(names(data_Stim_locked_ERP) %in% drops)]
+rm(ID)
+rm(drops)
+
+
+
+#Rename data_Stim_locked_ERP columns:
+data_Stim_locked_ERP<-rename(data_Stim_locked_ERP, c("V1"="ID", "V2"="Group","V3"="TotalTrialNumber","V4"="Trial","V5"="ITI",
+                     "V6"="Hemifield","V7"="Accuracy","V8"="RT",
+                     "V9"="Blinkneg100_100PR","V10"="Blinkneg100_450",
+                     "V11"="LeftFixBreakneg100_100PR","V12"="LeftFixBreakneg100_450",
+                     "V13"="RightFixBreakneg100_100PR","V14"="RightFixBreakneg100_450",
+                     "V15"="BothFixBreakneg100_100PR","V16"="BothFixBreakneg100_450",
+                     "V17"="Art_neg100_100PR",
+                     "V18"="RejectedTrial","V19"="Art_neg100_450","V20"="PupilDiameter",
+                     "V21"="CPP","V22"="N2c","V23"="N2i", "V24"="Time")) #, "V30"="Time"
+             
+#Make the required columns into factors:
+data_Stim_locked_ERP$Group <- factor(data_Stim_locked_ERP$Group)
+data_Stim_locked_ERP$ITI <- factor(data_Stim_locked_ERP$ITI)
+data_Stim_locked_ERP$Hemifield <- factor(data_Stim_locked_ERP$Hemifield)
+# data_Stim_locked_ERP$Trial <- factor(data_Stim_locked_ERP$Trial)
+data_Stim_locked_ERP$Accuracy <- factor(data_Stim_locked_ERP$Accuracy)
+# data_Stim_locked_ERP$Time <- factor(data_Stim_locked_ERP$Time)
+
+#Rename factor Levels:
+data_Stim_locked_ERP$Group <- revalue(data_Stim_locked_ERP$Group, c("1"="ADHD", "2"="Control"))
+data_Stim_locked_ERP$ITI <- revalue(data_Stim_locked_ERP$ITI, c("1"="3060ms", "2"="5170ms", "3"="7290ms"))
+data_Stim_locked_ERP$Hemifield <- revalue(data_Stim_locked_ERP$Hemifield, c("1"="Left", "2"="Right"))
+# data_Stim_locked_ERP$Sex <- revalue(data_Stim_locked_ERP$Sex, c("1"="Male", "2"="Female"))
+data_Stim_locked_ERP$Accuracy <- revalue(data_Stim_locked_ERP$Accuracy, c("1"="Hit", "0"="Miss"))
+
+
+#Re-class required vectors into Logicals:
+data_Stim_locked_ERP$Blinkneg100_100PR<-as.logical(data_Stim_locked_ERP$Blinkneg100_100PR)
+data_Stim_locked_ERP$Blinkneg100_450<-as.logical(data_Stim_locked_ERP$Blinkneg100_450)
+data_Stim_locked_ERP$LeftFixBreakneg100_100PR<-as.logical(data_Stim_locked_ERP$LeftFixBreakneg100_100PR)
+data_Stim_locked_ERP$LeftFixBreakneg100_450<-as.logical(data_Stim_locked_ERP$LeftFixBreakneg100_450)
+data_Stim_locked_ERP$RightFixBreakneg100_100PR<-as.logical(data_Stim_locked_ERP$RightFixBreakneg100_100PR)
+data_Stim_locked_ERP$RightFixBreakneg100_450<-as.logical(data_Stim_locked_ERP$RightFixBreakneg100_450)
+data_Stim_locked_ERP$BothFixBreakneg100_100PR<-as.logical(data_Stim_locked_ERP$BothFixBreakneg100_100PR)
+data_Stim_locked_ERP$BothFixBreakneg100_100PR<-as.logical(data_Stim_locked_ERP$BothFixBreakneg100_100PR)
+data_Stim_locked_ERP$BothFixBreakneg100_450<-as.logical(data_Stim_locked_ERP$BothFixBreakneg100_450)
+data_Stim_locked_ERP$Art_neg100_100PR<-as.logical(data_Stim_locked_ERP$Art_neg100_100PR)
+data_Stim_locked_ERP$Art_neg100_450<-as.logical(data_Stim_locked_ERP$Art_neg100_450)
+data_Stim_locked_ERP$RejectedTrial<-as.logical(data_Stim_locked_ERP$RejectedTrial)
+
+                     
+                     
+#Order any ordinal factors :
+data_Stim_locked_ERP$ITI <- ordered(data_Stim_locked_ERP$ITI, levels = c("3060ms", "5170ms", "7290ms"))  
+
+
+###############Data Cleaning For Single Trial data_Stim_locked_ERP######################
+
+#Remove rejected trials with trigger conflicts 
+data_Stim_locked_ERP<-data_Stim_locked_ERP[!data_Stim_locked_ERP$RejectedTrial,]
+#Remove trials where RT=0 (i.e. they did not respond)
+data_Stim_locked_ERP<-data_Stim_locked_ERP[data_Stim_locked_ERP$RT!=0,]
+#Remove trials where RT longer than 1000ms (i.e. after target finished)
+data_Stim_locked_ERP<-data_Stim_locked_ERP[data_Stim_locked_ERP$RT<2000,]
+#Remove trials where RT faster than 100ms (i.e. too fast must be false alarm)
+data_Stim_locked_ERP<-data_Stim_locked_ERP[data_Stim_locked_ERP$RT>200,]
+#Remove trials with missing values :
+data_Stim_locked_ERP<-data_Stim_locked_ERP[complete.cases(data_Stim_locked_ERP),] 
+
+
+```
+
+
+
+##Plot Stim-locked CPP:
+
+```{r, message=FALSE}
+
+#CPP
+
+data_Stim_locked_ERP2<-data_Stim_locked_ERP[!data_Stim_locked_ERP$Blinkneg100_100PR & !data_Stim_locked_ERP$LeftFixBreakneg100_100PR & !data_Stim_locked_ERP$RightFixBreakneg100_100PR & !data_Stim_locked_ERP$Art_neg100_100PR & !data_Stim_locked_ERP$BothFixBreakneg100_100PR, ]
+
+data_Stim_locked_ERP2<-data_Stim_locked_ERP2[data_Stim_locked_ERP2$Accuracy=="Hit",]
+
+source("summarySE.R") 
+source("summarySEwithin.R") #function to calculate Std.Er of mean
+source("normDataWithin.R")
+plotdata_CPP <- summarySEwithin(data_Stim_locked_ERP2, measurevar="CPP", betweenvars=c("Group"), withinvars=c("Time", "Hemifield"), idvar="ID")
+plotdata_CPP$Time<-as.numeric(as.character(plotdata_CPP$Time))
+summary(plotdata_CPP$Time)
+
+#CPP Group on same plot
+StimLockedCPP_Plot<-ggplot(plotdata_CPP, aes(x=Time, y=CPP, color=Hemifield,fill=Hemifield, linetype=Group)) + 
+    geom_line(size=1.4) + geom_ribbon(aes(ymin=CPP-se, ymax=CPP+se), alpha = 0.3, colour=NA) + #geom_errorbar(aes(ymin=CPP-se, ymax=CPP+se), alpha = 0.1) +  
+        geom_hline(yintercept=0, alpha = 0.5) + geom_vline(xintercept=0, alpha = 0.5) +   
+    coord_cartesian(ylim = c(-1, 10),  xlim = c(-100, 1500)) +
+    xlab("Time") + ylab("CPP (uV)") +
+    theme(axis.title.x = element_text(face="bold", size=12),
+          axis.text.x  = element_text(face="bold", angle=0,  size=12)) +
+    theme(axis.title.y = element_text(face="bold", size=12),
+          axis.text.y  = element_text(angle=0, vjust=0.5, size=12)) +
+    theme(legend.title = element_text(size=11, face="bold")) +
+    theme(legend.text = element_text(size = 11, face = "bold")) +
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+          panel.background = element_blank(), axis.line = element_line(colour = "black"))
+
+
+save(StimLockedCPP_Plot, file="StimLockedCPP_Plot.gg")
+
+```
+
+##Plot Stim-locked N2 (contra and ipsi):
+
+```{r, message=FALSE}
+
+
+#N2
+data_Stim_locked_ERP2<-data_Stim_locked_ERP[!data_Stim_locked_ERP$Blinkneg100_450 & !data_Stim_locked_ERP$LeftFixBreakneg100_450 & !data_Stim_locked_ERP$RightFixBreakneg100_450 & !data_Stim_locked_ERP$Art_neg100_450 & !data_Stim_locked_ERP$BothFixBreakneg100_450, ]
+data_Stim_locked_ERP2<-data_Stim_locked_ERP2[data_Stim_locked_ERP2$Accuracy=="Hit",]
+
+
+#N2c  facet wrap by group
+plotdata_N2c <- summarySEwithin(data_Stim_locked_ERP2, measurevar="N2c", betweenvars=c("Group"), withinvars=c("Time", "Hemifield"), idvar="ID")
+plotdata_N2c$Time<-as.numeric(as.character(plotdata_N2c$Time))
+summary(plotdata_N2c$Time)
+
+ggplot(plotdata_N2c, aes(x=Time, y=N2c, color=Hemifield,fill=Hemifield)) + geom_line(size=1.4) + 
+    geom_ribbon(aes(ymin=N2c-se, ymax=N2c+se), alpha = 0.3, colour=NA) +
+    geom_hline(yintercept=0, alpha = 0.5) + geom_vline(xintercept=0, alpha = 0.5) +   
+    coord_cartesian(ylim = c(-2.5, 1), xlim = c(-100, 500)) +
+    xlab("Time(ms)") + ylab("N2c (uV)") +
+    theme(axis.title.x = element_text(face="bold", size=12),
+          axis.text.x  = element_text(face="bold", angle=0,  size=12)) +
+    theme(axis.title.y = element_text(face="bold", size=12),
+          axis.text.y  = element_text(angle=0, vjust=0.5, size=12)) +
+    theme(legend.title = element_text(size=11, face="bold")) +
+    theme(legend.text = element_text(size = 11, face = "bold")) +
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+          panel.background = element_blank(), axis.line = element_line(colour = "black")) + facet_wrap(~ Group) +
+    theme(panel.margin = unit(2, "lines"))
+
+
+#N2i 
+plotdata_N2i <- summarySEwithin(data_Stim_locked_ERP2, measurevar="N2i", betweenvars=c("Group"), withinvars=c("Time", "Hemifield"), idvar="ID")
+plotdata_N2i$Time<-as.numeric(as.character(plotdata_N2i$Time))
+summary(plotdata_N2i$Time)
+
+ggplot(plotdata_N2i, aes(x=Time, y=N2i, color=Hemifield,fill=Hemifield)) + geom_line(size=1.4) + 
+    geom_ribbon(aes(ymin=N2i-se, ymax=N2i+se), alpha = 0.2, colour=NA) +
+        geom_hline(yintercept=0, alpha = 0.5) + geom_vline(xintercept=0, alpha = 0.5) +   
+    coord_cartesian(ylim = c(-2.5, 1), xlim = c(-100, 500)) +
+    xlab("Time (ms)") + ylab("N2i (uV)") +
+    theme(axis.title.x = element_text(face="bold", size=12),
+          axis.text.x  = element_text(face="bold", angle=0,  size=12)) +
+    theme(axis.title.y = element_text(face="bold", size=12),
+          axis.text.y  = element_text(angle=0, vjust=0.5, size=12)) +
+    theme(legend.title = element_text(size=11, face="bold")) +
+    theme(legend.text = element_text(size = 11, face = "bold")) +
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+          panel.background = element_blank(), axis.line = element_line(colour = "black")) + facet_wrap(~ Group) +
+    theme(panel.margin = unit(2, "lines"))
+
+
+
+###################Plot N2c and N2i trace in the same plot #####################
+plotdata_N2i$Hemisphere<-rep("Ipsilateral",length(plotdata_N2i[,1]))
+names(plotdata_N2i)[names(plotdata_N2i)=="N2i"] <- "N2"
+names(plotdata_N2i)[names(plotdata_N2i)=="N2i_norm"] <- "N2_norm"
+
+plotdata_N2c$Hemisphere<-rep("Contralateral",length(plotdata_N2c[,1]))
+names(plotdata_N2c)[names(plotdata_N2c)=="N2c"] <- "N2"
+names(plotdata_N2c)[names(plotdata_N2c)=="N2c_norm"] <- "N2_norm"
+plotdata_N2<-rbind(plotdata_N2i,plotdata_N2c)
+
+#facet_wrap(~ Group)
+StimLockedN2_Plot_Group<-ggplot(plotdata_N2, aes(x=Time, y=N2, color=Hemifield,fill=Hemifield, linetype=Hemisphere)) + 
+    geom_line(size=1.4) + geom_ribbon(aes(ymin=N2-se, ymax=N2+se), alpha = 0.3, colour=NA) + 
+        geom_hline(yintercept=0, alpha = 0.5) + geom_vline(xintercept=0, alpha = 0.5) +   
+    coord_cartesian(ylim = c(-2.7, 1), xlim = c(-100, 500)) +
+    xlab("Time (ms)") + ylab("N2 (uV)") +
+    theme(axis.title.x = element_text(face="bold", size=12),
+          axis.text.x  = element_text(face="bold", angle=0,  size=12)) +
+    theme(axis.title.y = element_text(face="bold", size=12),
+          axis.text.y  = element_text(angle=0, vjust=0.5, size=12)) +
+    theme(legend.title = element_text(size=11, face="bold")) +
+    theme(legend.text = element_text(size = 11, face = "bold")) +
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+          panel.background = element_blank(), axis.line = element_line(colour = "black")) + facet_wrap(~ Group) +
+    theme(panel.margin = unit(1.5, "lines"))
+
+save(StimLockedN2_Plot_Group, file="StimLockedN2_Plot_Group.gg")
+
+
+
+
+#  facet_wrap(~ Hemisphere)
+StimLockedN2_Plot_Hemisphere<-ggplot(plotdata_N2, aes(x=Time, y=N2, color=Hemifield,fill=Hemifield, linetype=Group)) + 
+    geom_line(size=1.4) + geom_ribbon(aes(ymin=N2-se, ymax=N2+se), alpha = 0.3, colour=NA) + 
+        geom_hline(yintercept=0, alpha = 0.5) + geom_vline(xintercept=0, alpha = 0.5) +   
+    coord_cartesian(ylim = c(-2.7, 1), xlim = c(-100, 500)) +
+    xlab("Time (ms)") + ylab("N2 (uV)") +
+    theme(axis.title.x = element_text(face="bold", size=12),
+          axis.text.x  = element_text(face="bold", angle=0,  size=12)) +
+    theme(axis.title.y = element_text(face="bold", size=12),
+          axis.text.y  = element_text(angle=0, vjust=0.5, size=12)) +
+    theme(legend.title = element_text(size=11, face="bold")) +
+    theme(legend.text = element_text(size = 11, face = "bold")) +
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+          panel.background = element_blank(), axis.line = element_line(colour = "black")) + facet_wrap(~ Hemisphere) +
+    theme(panel.margin = unit(1.5, "lines"))
+
+save(StimLockedN2_Plot_Hemisphere, file="StimLockedN2_Plot_Hemisphere.gg")
+
+
+```
+
+
