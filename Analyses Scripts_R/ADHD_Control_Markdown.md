@@ -5,7 +5,6 @@ Daniel Newman
 
 
 
-
 #First Test the Group x Hemifield effect on RTs:
 
 
@@ -32,6 +31,9 @@ Daniel Newman
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ```
+
+
+
 
 **So controls have significantly faster RTs overall, and there is a significant Group x Hemifield effect**
 
@@ -86,7 +88,7 @@ Daniel Newman
 ##     Prestige
 ```
 
-![](ADHD_Control_Markdown_files/figure-html/unnamed-chunk-3-1.png) 
+![](ADHD_Control_Markdown_files/figure-html/unnamed-chunk-4-1.png) 
 
 
 
@@ -145,11 +147,11 @@ Daniel Newman
 
 **First Plot the marginal N2 means and 95% CIs predicted by the model:**
 
-![](ADHD_Control_Markdown_files/figure-html/unnamed-chunk-5-1.png) 
+![](ADHD_Control_Markdown_files/figure-html/unnamed-chunk-6-1.png) 
 
 **Now plot the actual N2 data (note these error bars are std. error):**
 
-![](ADHD_Control_Markdown_files/figure-html/unnamed-chunk-6-1.png) ![](ADHD_Control_Markdown_files/figure-html/unnamed-chunk-6-2.png) 
+![](ADHD_Control_Markdown_files/figure-html/unnamed-chunk-7-1.png) ![](ADHD_Control_Markdown_files/figure-html/unnamed-chunk-7-2.png) 
 
 ###Break down the significant Group x Hemifield x Hemisphere effect. Test simple effect of 'Group' inside each combination of hemifield x Hemisphere 
 
@@ -264,11 +266,11 @@ Daniel Newman
 **First Plot the marginal CPPonset means and 95% CIs predicted by the model:**
 
 
-![](ADHD_Control_Markdown_files/figure-html/unnamed-chunk-10-1.png) 
+![](ADHD_Control_Markdown_files/figure-html/unnamed-chunk-11-1.png) 
 
 **Now plot the actual CPPonset data:**
 
-![](ADHD_Control_Markdown_files/figure-html/unnamed-chunk-11-1.png) ![](ADHD_Control_Markdown_files/figure-html/unnamed-chunk-11-2.png) 
+![](ADHD_Control_Markdown_files/figure-html/unnamed-chunk-12-1.png) ![](ADHD_Control_Markdown_files/figure-html/unnamed-chunk-12-2.png) 
 
 
 ###Break down the significant Group x Hemifield CPPonset effect. Test simple effect of 'hemifield' inside each Group
@@ -401,7 +403,7 @@ Daniel Newman
 ## CPPslope_Hemifield_By_Group          1     0.6451
 ```
 
-![](ADHD_Control_Markdown_files/figure-html/unnamed-chunk-14-1.png) 
+![](ADHD_Control_Markdown_files/figure-html/unnamed-chunk-15-1.png) 
 
 
 
@@ -412,7 +414,7 @@ Daniel Newman
 
 
 #Participant level N2_latency analysis
-![](ADHD_Control_Markdown_files/figure-html/unnamed-chunk-16-1.png) ![](ADHD_Control_Markdown_files/figure-html/unnamed-chunk-16-2.png) ![](ADHD_Control_Markdown_files/figure-html/unnamed-chunk-16-3.png) ![](ADHD_Control_Markdown_files/figure-html/unnamed-chunk-16-4.png) 
+![](ADHD_Control_Markdown_files/figure-html/unnamed-chunk-17-1.png) ![](ADHD_Control_Markdown_files/figure-html/unnamed-chunk-17-2.png) ![](ADHD_Control_Markdown_files/figure-html/unnamed-chunk-17-3.png) ![](ADHD_Control_Markdown_files/figure-html/unnamed-chunk-17-4.png) 
 
 ###Can't account for the skew in N2_latency data. Therefore do a factorial permutation test:
 
@@ -443,7 +445,7 @@ N2_latency_Perm
 ezPlot2(boot, x=Hemifield, split=Group)
 ```
 
-![](ADHD_Control_Markdown_files/figure-html/unnamed-chunk-18-1.png) 
+![](ADHD_Control_Markdown_files/figure-html/unnamed-chunk-19-1.png) 
 
 ###So this ^ is a little weird, ADHD have earlier N2c peak latency for left hemifield targets than controls, even though ADHD have slower left hemifield RTs than controls 
 
@@ -483,7 +485,7 @@ ezPlot2(boot, x=Hemifield, split=Group)
     ```
 
 
-![](ADHD_Control_Markdown_files/figure-html/unnamed-chunk-20-1.png) 
+![](ADHD_Control_Markdown_files/figure-html/unnamed-chunk-21-1.png) 
 
 ###Break down the signifiant TOT by Hemifield by group interaction in the RT data:
 
@@ -587,7 +589,7 @@ summary(glht(lmer(log(RT) ~ Hemifield + (1 | ID) +(1|ITI) + (1|Hemifield) + (1|T
 ## (Adjusted p values reported -- single-step method)
 ```
 
-![](ADHD_Control_Markdown_files/figure-html/unnamed-chunk-22-1.png) 
+![](ADHD_Control_Markdown_files/figure-html/unnamed-chunk-23-1.png) 
 
 ###So this ^ shows that during the start of the task, Controls had significant pseudoneglect (left hemifield RT bias) which shifted rightward over time to no bias by the end of the task. ADHD on the other hand, had no bias at the start of the task, and showed a small (non-significant) rightward shift over time-on-task
 
@@ -646,7 +648,7 @@ summary(glht(lmer(log(RT) ~ Hemifield + (1 | ID) +(1|ITI) + (1|Hemifield) + (1|T
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ```
 
-![](ADHD_Control_Markdown_files/figure-html/unnamed-chunk-23-1.png) 
+![](ADHD_Control_Markdown_files/figure-html/unnamed-chunk-24-1.png) 
 
 **This plot ^ shows ADHD have a rightward shift in hemispheric alpha asymmetry with TOT, driven by increasing right hemisphere alpha power over time**
 
@@ -761,7 +763,7 @@ summary(glht(lmer(log(RT) ~ Hemifield + (1 | ID) +(1|ITI) + (1|Hemifield) + (1|T
 
 ###Plot Alpha Asymmetry Index by TOT and Group help look at significant Group x Hemisphere x TOT interaction in the alpha power data
 
-![](ADHD_Control_Markdown_files/figure-html/unnamed-chunk-27-1.png) 
+![](ADHD_Control_Markdown_files/figure-html/unnamed-chunk-28-1.png) 
 
 
 **So ADHD have a significant rightward shift in hemispheric alpha asymmetry with TOT, while ADHD do not. Above shows ADHD's rightward shift is driven by increasing right hemisphere alpha power over time**
@@ -793,5 +795,42 @@ summary(glht(lmer(log(RT) ~ Hemifield + (1 | ID) +(1|ITI) + (1|Hemifield) + (1|T
 ############################################################################################################
 ############################################################################################################
 ############################################################################################################
+
+
+
+#Test how clinical measures relate to Asymmetry Indices and other variables of interest: 
+
+
+```
+## The following `from` values were not present in `x`: Group.x
+## Loading required package: Hmisc
+## Loading required package: Formula
+## 
+## Attaching package: 'Hmisc'
+## 
+## The following objects are masked from 'package:plyr':
+## 
+##     is.discrete, summarize
+## 
+## The following object is masked from 'package:psych':
+## 
+##     describe
+## 
+## The following objects are masked from 'package:base':
+## 
+##     format.pval, round.POSIXt, trunc.POSIXt, units
+```
+
+```
+## [1] 0.2787106
+```
+
+###Plot correlation heatmap of some variables of interest, keeping only those relationships with uncorrected p<.05
+
+**NOTE: for the N2c/i the "_PA" or "_GA" represents whether the N2 measurement window was based on peak amplitude of individual participant's wavefore, or the Grand Average Waveform. ** 
+![](ADHD_Control_Markdown_files/figure-html/unnamed-chunk-30-1.png) 
+
+**Try same thing but plotting absolute r value (from 0 to 1; instead of from -1 to 1 as in the plot above)**
+![](ADHD_Control_Markdown_files/figure-html/unnamed-chunk-31-1.png) 
 
 
