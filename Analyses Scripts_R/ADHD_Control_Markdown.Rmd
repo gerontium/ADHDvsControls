@@ -395,7 +395,7 @@ ggplot(plotdata, aes(x=Group, y=RT, fill=Hemifield)) +
 
 ```
 
-
+###Next I'll move on to look at the EEG data. This EEG data was low-pass filtered to 35Hz, and no high-pass filter applied. No CSD transformation was applied:
 
 #Single trial N2 Amplitude 
 
@@ -957,6 +957,7 @@ ggplot(plotdata, aes(x=TwoBins, y=RT, fill=Hemifield)) +
 
 #Look at Pre-target alpha-power over time-on-task
 
+##Pre-alpha ROI electrodes were chosen per participant using the same post-target alpha desync method as in the Blue Light Paper
 ```{r, echo=FALSE, warning=FALSE}
 #### Make Hemisphere a factor:
 DF<-data.frame(data$ID, data$Group, data$ITI, data$Hemifield, data$PreAlphaPowerLH,data$PreAlphaPowerRH,data$Trial, data$Art_neg500_0
@@ -1018,6 +1019,10 @@ PreAlphaPower_HemispherebyTOT <- update(PreAlphaPower_GroupbyTOT, .~. + Hemisphe
 PreAlphaPower_GroupbyHemispherebyTOT<-update(PreAlphaPower_HemispherebyTOT, .~. + Group*Hemisphere*Trial)
 
 anova(PreAlphaPower_random_intercepts_only, PreAlphaPower_Group,PreAlphaPower_Hemisphere,PreAlphaPower_GroupbyHemisphere,PreAlphaPower_TOT,PreAlphaPower_GroupbyTOT, PreAlphaPower_HemispherebyTOT, PreAlphaPower_GroupbyHemispherebyTOT)
+```
+**This ^ shows there is a significant Group x Hemisphere x TOT interaction. Lets plot it:**
+
+```{r, echo=FALSE, warning=FALSE}
 
 require(effects)
 eff.GroupbyHemispherebyTOT <- Effect(c("Group", "Hemisphere", "Trial"), PreAlphaPower_GroupbyHemispherebyTOT)
@@ -1092,69 +1097,64 @@ ggplot(data2, aes(x=data2$Trial, y=data2$PreAlphaAsym)) +
 
 
 
-#Post-target Alpha-desync (measured here on participant level, not single trial, as difference in alpha between baseline and 300 - 1000ms post target)
-```{r, message=FALSE}
-AlphaDesync_participant_level_long <- melt(data_participant_level, id.vars=c("ID", "Gender", "Group", "Age_B", "DAT1_3_Group"), 
-                                           measure.vars=c("AlphaDesync_RightHemi_LeftTarget", "AlphaDesync_LeftHemi_RightTarget", "AlphaDesync_LeftHemi_LeftTarget", "AlphaDesync_RightHemi_RightTarget" ), 
-                                           variable.name="Hemifield_by_Hemisphere",
-                                           value.name="AlphaDesync")
+#Any effect of TOT on N2 amplitude?
+```{r, message=FALSE, echo=FALSE}
+#Make Hemisphere a factor:
+DF<-data.frame(data$ID, data$ITI, data$Hemifield, data$N2c_PA,data$N2i_PA, data$Trial, data$Blinkneg100_450, data$LeftFixBreakneg100_450, data$RightFixBreakneg100_450, data$Art_neg100_450, data$BothFixBreakneg100_450, data$Group)
 
-#Create seperate target Hemifield and Hemisphere factors
-AlphaDesync_participant_level_long$Hemifield<-revalue(AlphaDesync_participant_level_long$Hemifield_by_Hemisphere, c("AlphaDesync_RightHemi_LeftTarget"="Left","AlphaDesync_LeftHemi_LeftTarget"="Left", "AlphaDesync_LeftHemi_RightTarget"="Right", "AlphaDesync_RightHemi_RightTarget"="Right"))
-
-AlphaDesync_participant_level_long$Hemisphere<-revalue(AlphaDesync_participant_level_long$Hemifield_by_Hemisphere, c("AlphaDesync_RightHemi_LeftTarget"="Contralateral","AlphaDesync_LeftHemi_LeftTarget"="Ipsilateral", "AlphaDesync_LeftHemi_RightTarget"="Contralateral", "AlphaDesync_RightHemi_RightTarget"="Ipsilateral"))
-
-#Histogram of participant's AlphaDesyncc scores by group and Hemifield 
-AlphaDesync_participant_level_long$Group_by_Hemifield_By_Hemisphere<-interaction(AlphaDesync_participant_level_long$Group,AlphaDesync_participant_level_long$Hemifield, AlphaDesync_participant_level_long$Hemisphere)
-ggplot(AlphaDesync_participant_level_long, aes(AlphaDesync))  + geom_histogram(aes(y=..count..), colour="black", fill="white") + facet_wrap(~ Group_by_Hemifield_By_Hemisphere, ncol = 2)
-
-#Find AlphaDesync Outliers 
-AlphaDesync_participant_level_long$AlphaDesync.Z<-scale(AlphaDesync_participant_level_long$AlphaDesync)
-hist(AlphaDesync_participant_level_long$AlphaDesync.Z)
-#Check which participants have outlier AlphaDesyncs
-AlphaDesync_participant_level_long[!abs(AlphaDesync_participant_level_long$AlphaDesync.Z)<3,]
-#Remove AlphaDesyncs Outliers 
-AlphaDesync_participant_level_long<-AlphaDesync_participant_level_long[abs(AlphaDesync_participant_level_long$AlphaDesync.Z)<3,]
-
-
-hist(AlphaDesync_participant_level_long$AlphaDesync)
-
-
-#model AlphaDesync as a function of Group, Hemifield, and Hemisphere
-AlphaDesync_random_intercepts_only<-lmer(AlphaDesync ~ 1 + (1 | Group/ID/Hemisphere) +(1|Hemifield), data = AlphaDesync_participant_level_long, REML=FALSE, na.action = na.omit)
-AlphaDesync_Group<-update(AlphaDesync_random_intercepts_only, .~. + Group)
-AlphaDesync_Hemifield<-update(AlphaDesync_Group, .~. + Hemifield)
-AlphaDesync_Hemisphere<-update(AlphaDesync_Hemifield, .~. + Hemisphere)
-AlphaDesync_Group_by_Hemifield<-update(AlphaDesync_Hemisphere, .~. + Group*Hemifield)
-AlphaDesync_Group_by_Hemisphere<-update(AlphaDesync_Group_by_Hemifield, .~. + Group*Hemisphere)
-AlphaDesync_Hemifield_by_Hemisphere<-update(AlphaDesync_Group_by_Hemisphere, .~. + Hemifield*Hemisphere)
-AlphaDesync_Group_by_Hemifield_By_Hemisphere<-update(AlphaDesync_Hemifield_by_Hemisphere, .~. + Group*Hemifield*Hemisphere)
-anova(AlphaDesync_random_intercepts_only, AlphaDesync_Group, AlphaDesync_Hemifield, AlphaDesync_Hemisphere, AlphaDesync_Group_by_Hemifield, AlphaDesync_Group_by_Hemisphere, AlphaDesync_Hemifield_by_Hemisphere,AlphaDesync_Group_by_Hemifield_By_Hemisphere)
-
-
-require(effects)		 
-plot(allEffects(AlphaDesync_Hemisphere)) #Do alpha desynchronisation was greater over the contralateral hemisphere  
+names(DF) <- c("ID",  "ITI",	"Hemifield","N2c_PA","N2i_PA","Trial","Blinkneg100_450", 
+               "LeftFixBreakneg100_450", "RightFixBreakneg100_450", "Art_neg100_450", "BothFixBreakneg100_450", "Group")
 
 
 
-##Check assumptions for  model by plotting residuals:
-residuals_AlphaDesync_Hemisphere=residuals(AlphaDesync_Hemisphere)
-plot(residuals_AlphaDesync_Hemisphere)
-qqnorm(residuals_AlphaDesync_Hemisphere)
-qqline(residuals_AlphaDesync_Hemisphere)
-hist(residuals_AlphaDesync_Hemisphere)
+DF$contralateral<-rep("contralateral",length(DF[,1]))
+DF$ipsilateral<-rep("ipsilateral",length(DF[,1]))               
+DF_contralateral<-subset(DF, select=c(ID, ITI, Hemifield,N2c_PA,contralateral,Trial,Blinkneg100_450, 
+                                      LeftFixBreakneg100_450, RightFixBreakneg100_450, Art_neg100_450, BothFixBreakneg100_450,Group))
+DF_ipsilateral<-subset(DF, select=c(ID, ITI, Hemifield,N2i_PA,ipsilateral,Trial,Blinkneg100_450, 
+                                    LeftFixBreakneg100_450, RightFixBreakneg100_450, Art_neg100_450, BothFixBreakneg100_450,Group))
 
-####Above looks pretty bad since data are not normally distributed
+names(DF_contralateral)[names(DF_contralateral)=="contralateral"] <- "Hemisphere"
+names(DF_ipsilateral)[names(DF_ipsilateral)=="ipsilateral"] <- "Hemisphere"
+names(DF_contralateral)[names(DF_contralateral)=="N2c_PA"] <- "N2"
+names(DF_ipsilateral)[names(DF_ipsilateral)=="N2i_PA"] <- "N2"
+DF<-rbind(DF_contralateral,DF_ipsilateral)
+rm(DF_contralateral,DF_ipsilateral)
+DF$Hemisphere <- factor(DF$Hemisphere)
+
+DF<-DF[!DF$Blinkneg100_450 & !DF$LeftFixBreakneg100_450 & !DF$RightFixBreakneg100_450 & !DF$Art_neg100_450 & !DF$BothFixBreakneg100_450, ]
 
 
-AlphaDesync_Perm<-ezPerm(data = AlphaDesync_participant_level_long, dv = .(AlphaDesync), wid = .(ID),  between = .(Group), within = .(Hemifield, Hemisphere), perms = 1000)
+DF$IDbyHemifieldbyITIbyHemispherebyHemisphere<-interaction(DF$ID, DF$Hemifield, DF$ITI, DF$Hemisphere)
+#calculate mean and sd 
+m <- tapply(DF$N2,DF$IDbyHemifieldbyITIbyHemisphere,mean)
+s <- sqrt(tapply(DF$N2,DF$IDbyHemifieldbyITIbyHemisphere,var))
+#calculate N2.Z and save it inside data.frame
+DF$N2.Z <- (DF$N2-m[DF$IDbyHemifieldbyITIbyHemisphere])/s[DF$IDbyHemifieldbyITIbyHemisphere]
+#check that Z scores have mean=0 and std=1 
+N2.Z_checker <- ddply(DF, c("ID", "Hemifield", "ITI", "Hemisphere"), summarise,
+                      N    = length(N2.Z ),
+                      mean = round(mean(N2.Z )),
+                      sd   = sd(N2.Z ),
+                      se   = sd / sqrt(N))
 
-AlphaDesync_Perm
+##Remove trials where absolute N2.Z>3 (i.e. remove outlier N2s)
+DF<-DF[!abs(DF$N2.Z)>3,]
 
 
-
+## NO EFFECTS OF TOT on N2:
+##Check for TOT effects:
+N2_TOT<-update(N2_HemifieldbyGroupbyHemisphere, .~. + Trial)
+N2_GroupbyTOT<-update(N2_TOT, .~. + Trial*Group)
+N2_HemifieldbyTOT<-update(N2_GroupbyTOT, .~. + Trial*Hemifield)
+N2_HemispherebyTOT<-update(N2_HemifieldbyTOT, .~. + Trial*Hemisphere)
+N2_HemifieldbyGroupbyTOT<-update(N2_HemispherebyTOT, .~. + Trial*Hemifield*Group)
+N2_HemispherebyGroupbyTOT<-update(N2_HemifieldbyGroupbyTOT, .~. + Trial*Hemisphere*Group)
+N2_HemifieldbyHemispherebyTOT<-update(N2_HemispherebyGroupbyTOT, .~. + Trial*Hemisphere*Hemifield)
+N2_HemifieldbyGroupbyHemispherebyTOT<-update(N2_HemifieldbyHemispherebyTOT, .~. + Trial*Hemisphere*Hemifield*Group)
+anova(N2_HemifieldbyGroupbyHemisphere, N2_TOT, N2_GroupbyTOT, N2_HemifieldbyTOT,N2_HemispherebyTOT,N2_HemifieldbyGroupbyTOT,N2_HemispherebyGroupbyTOT,N2_HemifieldbyHemispherebyTOT,N2_HemifieldbyGroupbyHemispherebyTOT)
 ```
-
+##No the effect ^ of TOT on N2 amplitude
 
 #####################################################################################################################################################################
 #####################################################################################################################################################################
@@ -1304,7 +1304,7 @@ critical.r(n=50, alpha = .05)
 
 ###Plot correlation heatmap of some variables of interest, keeping only those relationships with uncorrected p<.05
 
-**NOTE: for the N2c/i the "_PA" or "_GA" represents whether the N2 measurement window was based on peak amplitude of individual participant's wavefore, or the Grand Average Waveform. ** 
+**NOTE: for the N2c/i the "_PA" or "_GA" represents whether the N2 measurement window was based on peak amplitude of individual participant's wavefore, or the Grand Average Waveform.** 
 ```{r, echo=FALSE, warning=FALSE}
 #make a dataframe of r (correlation coefficient) values to plot
 cor_matrix<-cor(as.matrix(data2), use="na.or.complete")
@@ -1336,3 +1336,7 @@ qplot(x=Var1, y=Var2, data=cor_data, fill=abs_Pearson_r, geom="tile")+
 ```
 
 
+##I still haven't tried measuring CPP onset on a single-trial basis yet for this data (using the polyfit method Rafa and I developed), I figured I'd just stick with the Participant level measurements using Ger's method from his current biology paper.  I will at some point try looking at single trial CPP, but I'm starting to stress about getting the Thesis writeup finished, so will focus on that for a while now
+
+
+###Also I did try predicting participants' RT asymmetry with a basic regression model including pre-alpha asym, N2c-asym, CPP-asym and it doesn't work. I think it is because the data are not clean enough data.

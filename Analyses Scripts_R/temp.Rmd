@@ -8,6 +8,68 @@ output: html_document
 
 
 
+#Post-target Alpha-desync (measured here on participant level, not single trial, as difference in alpha between baseline and 300 - 1000ms post target)
+```{r, message=FALSE}
+AlphaDesync_participant_level_long <- melt(data_participant_level, id.vars=c("ID", "Gender", "Group", "Age_B", "DAT1_3_Group"), 
+                                           measure.vars=c("AlphaDesync_RightHemi_LeftTarget", "AlphaDesync_LeftHemi_RightTarget", "AlphaDesync_LeftHemi_LeftTarget", "AlphaDesync_RightHemi_RightTarget" ), 
+                                           variable.name="Hemifield_by_Hemisphere",
+                                           value.name="AlphaDesync")
+
+#Create seperate target Hemifield and Hemisphere factors
+AlphaDesync_participant_level_long$Hemifield<-revalue(AlphaDesync_participant_level_long$Hemifield_by_Hemisphere, c("AlphaDesync_RightHemi_LeftTarget"="Left","AlphaDesync_LeftHemi_LeftTarget"="Left", "AlphaDesync_LeftHemi_RightTarget"="Right", "AlphaDesync_RightHemi_RightTarget"="Right"))
+
+AlphaDesync_participant_level_long$Hemisphere<-revalue(AlphaDesync_participant_level_long$Hemifield_by_Hemisphere, c("AlphaDesync_RightHemi_LeftTarget"="Contralateral","AlphaDesync_LeftHemi_LeftTarget"="Ipsilateral", "AlphaDesync_LeftHemi_RightTarget"="Contralateral", "AlphaDesync_RightHemi_RightTarget"="Ipsilateral"))
+
+#Histogram of participant's AlphaDesyncc scores by group and Hemifield 
+AlphaDesync_participant_level_long$Group_by_Hemifield_By_Hemisphere<-interaction(AlphaDesync_participant_level_long$Group,AlphaDesync_participant_level_long$Hemifield, AlphaDesync_participant_level_long$Hemisphere)
+ggplot(AlphaDesync_participant_level_long, aes(AlphaDesync))  + geom_histogram(aes(y=..count..), colour="black", fill="white") + facet_wrap(~ Group_by_Hemifield_By_Hemisphere, ncol = 2)
+
+#Find AlphaDesync Outliers 
+AlphaDesync_participant_level_long$AlphaDesync.Z<-scale(AlphaDesync_participant_level_long$AlphaDesync)
+hist(AlphaDesync_participant_level_long$AlphaDesync.Z)
+#Check which participants have outlier AlphaDesyncs
+AlphaDesync_participant_level_long[!abs(AlphaDesync_participant_level_long$AlphaDesync.Z)<3,]
+#Remove AlphaDesyncs Outliers 
+AlphaDesync_participant_level_long<-AlphaDesync_participant_level_long[abs(AlphaDesync_participant_level_long$AlphaDesync.Z)<3,]
+
+
+hist(AlphaDesync_participant_level_long$AlphaDesync)
+
+
+#model AlphaDesync as a function of Group, Hemifield, and Hemisphere
+AlphaDesync_random_intercepts_only<-lmer(AlphaDesync ~ 1 + (1 | Group/ID/Hemisphere) +(1|Hemifield), data = AlphaDesync_participant_level_long, REML=FALSE, na.action = na.omit)
+AlphaDesync_Group<-update(AlphaDesync_random_intercepts_only, .~. + Group)
+AlphaDesync_Hemifield<-update(AlphaDesync_Group, .~. + Hemifield)
+AlphaDesync_Hemisphere<-update(AlphaDesync_Hemifield, .~. + Hemisphere)
+AlphaDesync_Group_by_Hemifield<-update(AlphaDesync_Hemisphere, .~. + Group*Hemifield)
+AlphaDesync_Group_by_Hemisphere<-update(AlphaDesync_Group_by_Hemifield, .~. + Group*Hemisphere)
+AlphaDesync_Hemifield_by_Hemisphere<-update(AlphaDesync_Group_by_Hemisphere, .~. + Hemifield*Hemisphere)
+AlphaDesync_Group_by_Hemifield_By_Hemisphere<-update(AlphaDesync_Hemifield_by_Hemisphere, .~. + Group*Hemifield*Hemisphere)
+anova(AlphaDesync_random_intercepts_only, AlphaDesync_Group, AlphaDesync_Hemifield, AlphaDesync_Hemisphere, AlphaDesync_Group_by_Hemifield, AlphaDesync_Group_by_Hemisphere, AlphaDesync_Hemifield_by_Hemisphere,AlphaDesync_Group_by_Hemifield_By_Hemisphere)
+
+
+require(effects)		 
+plot(allEffects(AlphaDesync_Hemisphere)) #Do alpha desynchronisation was greater over the contralateral hemisphere  
+
+
+
+##Check assumptions for  model by plotting residuals:
+residuals_AlphaDesync_Hemisphere=residuals(AlphaDesync_Hemisphere)
+plot(residuals_AlphaDesync_Hemisphere)
+qqnorm(residuals_AlphaDesync_Hemisphere)
+qqline(residuals_AlphaDesync_Hemisphere)
+hist(residuals_AlphaDesync_Hemisphere)
+
+####Above looks pretty bad since data are not normally distributed
+
+
+AlphaDesync_Perm<-ezPerm(data = AlphaDesync_participant_level_long, dv = .(AlphaDesync), wid = .(ID),  between = .(Group), within = .(Hemifield, Hemisphere), perms = 1000)
+
+AlphaDesync_Perm
+
+
+
+```
 
 
 

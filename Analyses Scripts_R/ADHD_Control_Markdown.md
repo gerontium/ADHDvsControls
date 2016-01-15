@@ -90,7 +90,7 @@ Daniel Newman
 
 ![](ADHD_Control_Markdown_files/figure-html/unnamed-chunk-4-1.png) 
 
-
+###Next I'll move on to look at the EEG data. This EEG data was low-pass filtered to 35Hz, and no high-pass filter applied. No CSD transformation was applied:
 
 #Single trial N2 Amplitude 
 
@@ -596,6 +596,7 @@ summary(glht(lmer(log(RT) ~ Hemifield + (1 | ID) +(1|ITI) + (1|Hemifield) + (1|T
 
 #Look at Pre-target alpha-power over time-on-task
 
+##Pre-alpha ROI electrodes were chosen per participant using the same post-target alpha desync method as in the Blue Light Paper
 
 ```
 ## Number of Observations for modle:
@@ -647,8 +648,9 @@ summary(glht(lmer(log(RT) ~ Hemifield + (1 | ID) +(1|ITI) + (1|Hemifield) + (1|T
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ```
+**This ^ shows there is a significant Group x Hemisphere x TOT interaction. Lets plot it:**
 
-![](ADHD_Control_Markdown_files/figure-html/unnamed-chunk-24-1.png) 
+![](ADHD_Control_Markdown_files/figure-html/unnamed-chunk-25-1.png) 
 
 **This plot ^ shows ADHD have a rightward shift in hemispheric alpha asymmetry with TOT, driven by increasing right hemisphere alpha power over time**
 
@@ -763,11 +765,76 @@ summary(glht(lmer(log(RT) ~ Hemifield + (1 | ID) +(1|ITI) + (1|Hemifield) + (1|T
 
 ###Plot Alpha Asymmetry Index by TOT and Group help look at significant Group x Hemisphere x TOT interaction in the alpha power data
 
-![](ADHD_Control_Markdown_files/figure-html/unnamed-chunk-28-1.png) 
+![](ADHD_Control_Markdown_files/figure-html/unnamed-chunk-29-1.png) 
 
 
 **So ADHD have a significant rightward shift in hemispheric alpha asymmetry with TOT, while ADHD do not. Above shows ADHD's rightward shift is driven by increasing right hemisphere alpha power over time**
 
+
+
+#Any effect of TOT on N2 amplitude?
+
+```
+## Data: DF
+## Models:
+## N2_HemifieldbyGroupbyHemisphere: N2 ~ (1 | ID/Hemisphere) + (1 | ITI) + (1 | Hemifield) + (1 | 
+## N2_HemifieldbyGroupbyHemisphere:     Trial) + Group + Hemifield + Hemisphere + Group:Hemifield + 
+## N2_HemifieldbyGroupbyHemisphere:     Group:Hemisphere + Hemifield:Hemisphere + Group:Hemifield:Hemisphere
+## N2_TOT: N2 ~ (1 | ID/Hemisphere) + (1 | ITI) + (1 | Hemifield) + (1 | 
+## N2_TOT:     Trial) + Group + Hemifield + Hemisphere + Trial + Group:Hemifield + 
+## N2_TOT:     Group:Hemisphere + Hemifield:Hemisphere + Group:Hemifield:Hemisphere
+## N2_GroupbyTOT: N2 ~ (1 | ID/Hemisphere) + (1 | ITI) + (1 | Hemifield) + (1 | 
+## N2_GroupbyTOT:     Trial) + Group + Hemifield + Hemisphere + Trial + Group:Hemifield + 
+## N2_GroupbyTOT:     Group:Hemisphere + Hemifield:Hemisphere + Group:Trial + Group:Hemifield:Hemisphere
+## N2_HemifieldbyTOT: N2 ~ (1 | ID/Hemisphere) + (1 | ITI) + (1 | Hemifield) + (1 | 
+## N2_HemifieldbyTOT:     Trial) + Group + Hemifield + Hemisphere + Trial + Group:Hemifield + 
+## N2_HemifieldbyTOT:     Group:Hemisphere + Hemifield:Hemisphere + Group:Trial + Hemifield:Trial + 
+## N2_HemifieldbyTOT:     Group:Hemifield:Hemisphere
+## N2_HemispherebyTOT: N2 ~ (1 | ID/Hemisphere) + (1 | ITI) + (1 | Hemifield) + (1 | 
+## N2_HemispherebyTOT:     Trial) + Group + Hemifield + Hemisphere + Trial + Group:Hemifield + 
+## N2_HemispherebyTOT:     Group:Hemisphere + Hemifield:Hemisphere + Group:Trial + Hemifield:Trial + 
+## N2_HemispherebyTOT:     Hemisphere:Trial + Group:Hemifield:Hemisphere
+## N2_HemifieldbyGroupbyTOT: N2 ~ (1 | ID/Hemisphere) + (1 | ITI) + (1 | Hemifield) + (1 | 
+## N2_HemifieldbyGroupbyTOT:     Trial) + Group + Hemifield + Hemisphere + Trial + Group:Hemifield + 
+## N2_HemifieldbyGroupbyTOT:     Group:Hemisphere + Hemifield:Hemisphere + Group:Trial + Hemifield:Trial + 
+## N2_HemifieldbyGroupbyTOT:     Hemisphere:Trial + Group:Hemifield:Hemisphere + Group:Hemifield:Trial
+## N2_HemispherebyGroupbyTOT: N2 ~ (1 | ID/Hemisphere) + (1 | ITI) + (1 | Hemifield) + (1 | 
+## N2_HemispherebyGroupbyTOT:     Trial) + Group + Hemifield + Hemisphere + Trial + Group:Hemifield + 
+## N2_HemispherebyGroupbyTOT:     Group:Hemisphere + Hemifield:Hemisphere + Group:Trial + Hemifield:Trial + 
+## N2_HemispherebyGroupbyTOT:     Hemisphere:Trial + Group:Hemifield:Hemisphere + Group:Hemifield:Trial + 
+## N2_HemispherebyGroupbyTOT:     Group:Hemisphere:Trial
+## N2_HemifieldbyHemispherebyTOT: N2 ~ (1 | ID/Hemisphere) + (1 | ITI) + (1 | Hemifield) + (1 | 
+## N2_HemifieldbyHemispherebyTOT:     Trial) + Group + Hemifield + Hemisphere + Trial + Group:Hemifield + 
+## N2_HemifieldbyHemispherebyTOT:     Group:Hemisphere + Hemifield:Hemisphere + Group:Trial + Hemifield:Trial + 
+## N2_HemifieldbyHemispherebyTOT:     Hemisphere:Trial + Group:Hemifield:Hemisphere + Group:Hemifield:Trial + 
+## N2_HemifieldbyHemispherebyTOT:     Group:Hemisphere:Trial + Hemifield:Hemisphere:Trial
+## N2_HemifieldbyGroupbyHemispherebyTOT: N2 ~ (1 | ID/Hemisphere) + (1 | ITI) + (1 | Hemifield) + (1 | 
+## N2_HemifieldbyGroupbyHemispherebyTOT:     Trial) + Group + Hemifield + Hemisphere + Trial + Group:Hemifield + 
+## N2_HemifieldbyGroupbyHemispherebyTOT:     Group:Hemisphere + Hemifield:Hemisphere + Group:Trial + Hemifield:Trial + 
+## N2_HemifieldbyGroupbyHemispherebyTOT:     Hemisphere:Trial + Group:Hemifield:Hemisphere + Group:Hemifield:Trial + 
+## N2_HemifieldbyGroupbyHemispherebyTOT:     Group:Hemisphere:Trial + Hemifield:Hemisphere:Trial + Group:Hemifield:Hemisphere:Trial
+##                                      Df    AIC    BIC logLik deviance
+## N2_HemifieldbyGroupbyHemisphere      14 125546 125655 -62759   125518
+## N2_TOT                               15 125548 125664 -62759   125518
+## N2_GroupbyTOT                        16 125548 125672 -62758   125516
+## N2_HemifieldbyTOT                    17 125549 125681 -62758   125515
+## N2_HemispherebyTOT                   18 125549 125688 -62756   125513
+## N2_HemifieldbyGroupbyTOT             19 125551 125698 -62756   125513
+## N2_HemispherebyGroupbyTOT            20 125552 125707 -62756   125512
+## N2_HemifieldbyHemispherebyTOT        21 125554 125717 -62756   125512
+## N2_HemifieldbyGroupbyHemispherebyTOT 22 125556 125726 -62756   125512
+##                                       Chisq Chi Df Pr(>Chisq)
+## N2_HemifieldbyGroupbyHemisphere                              
+## N2_TOT                               0.1524      1     0.6962
+## N2_GroupbyTOT                        2.2330      1     0.1351
+## N2_HemifieldbyTOT                    0.7614      1     0.3829
+## N2_HemispherebyTOT                   2.1870      1     0.1392
+## N2_HemifieldbyGroupbyTOT             0.3146      1     0.5749
+## N2_HemispherebyGroupbyTOT            0.4054      1     0.5243
+## N2_HemifieldbyHemispherebyTOT        0.0741      1     0.7855
+## N2_HemifieldbyGroupbyHemispherebyTOT 0.0017      1     0.9675
+```
+##No the effect ^ of TOT on N2 amplitude
 
 #####################################################################################################################################################################
 #####################################################################################################################################################################
@@ -827,10 +894,14 @@ summary(glht(lmer(log(RT) ~ Hemifield + (1 | ID) +(1|ITI) + (1|Hemifield) + (1|T
 
 ###Plot correlation heatmap of some variables of interest, keeping only those relationships with uncorrected p<.05
 
-**NOTE: for the N2c/i the "_PA" or "_GA" represents whether the N2 measurement window was based on peak amplitude of individual participant's wavefore, or the Grand Average Waveform. ** 
-![](ADHD_Control_Markdown_files/figure-html/unnamed-chunk-30-1.png) 
+**NOTE: for the N2c/i the "_PA" or "_GA" represents whether the N2 measurement window was based on peak amplitude of individual participant's wavefore, or the Grand Average Waveform.** 
+![](ADHD_Control_Markdown_files/figure-html/unnamed-chunk-32-1.png) 
 
 **Try same thing but plotting absolute r value (from 0 to 1; instead of from -1 to 1 as in the plot above)**
-![](ADHD_Control_Markdown_files/figure-html/unnamed-chunk-31-1.png) 
+![](ADHD_Control_Markdown_files/figure-html/unnamed-chunk-33-1.png) 
 
 
+##I still haven't tried measuring CPP onset on a single-trial basis yet for this data (using the polyfit method Rafa and I developed), I figured I'd just stick with the Participant level measurements using Ger's method from his current biology paper.  I will at some point try looking at single trial CPP, but I'm starting to stress about getting the Thesis writeup finished, so will focus on that for a while now
+
+
+###Also I did try predicting participants' RT asymmetry with a basic regression model including pre-alpha asym, N2c-asym, CPP-asym and it doesn't work. I think it is because the data are not clean enough data.
