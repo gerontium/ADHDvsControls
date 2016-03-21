@@ -42,7 +42,7 @@ if (location=="Monash") {
 
 #Remove # in front of the line below and run the code. Replace the # after installing the packages, otherwise the R markdown script will give errors.
 
-# install.packages(c("MASS", "akima", "robustbase", "cobs", "robust", "mgcv", "scatterplot3d", "quantreg", "rrcov", "lars", "pwr", "trimcluster", "mc2d", "psych", "Rfit","MBESS", "BayesFactor", "PoweR", "ggplot2", "reshape2", "plyr", "devtools", "rmarkdown","gmodels", "HLMdiag", "car", "gridExtra", "bootES", "BEST","foreign","nlme","pastecs","multcomp","ggplot2","compute.es","ez","lattice","lme4","effects","diagram","png", "grid"))
+# install.packages(c("MASS", "akima", "robustbase", "cobs", "robust", "mgcv", "scatterplot3d", "quantreg", "rrcov", "lars", "pwr", "trimcluster", "mc2d", "psych", "Rfit","MBESS", "BayesFactor", "PoweR", "ggplot2", "reshape2", "plyr", "devtools", "rmarkdown","gmodels", "HLMdiag", "car", "gridExtra", "bootES", "BEST","foreign","nlme","pastecs","multcomp","ggplot2","compute.es","ez","lattice","lme4","effects","diagram","png", "grid", "dplyr"))
 
 #Installation of the robust statistics package: Remove # in front of each of 4 lines below and run the code. Replace the # after installing the packages, otherwise the R markdown script will give errors.
 
@@ -111,7 +111,7 @@ ID <- read.table("C:/GitHub/ADHDvsControls/Analyses Scripts_Matlab/IDs.csv", quo
 } else if (location=="DansLaptop") {
 ID <- read.csv("C:/Users/Dan/Documents/GitHub/ADHDvsControls/Analyses Scripts_Matlab/IDs.csv", header=F)
 } else setwd(("~"))
-ID<-rename(ID,c("V1"="ID"))
+ID<-plyr::rename(ID,c("V1"="ID"))
 data_participant_level$ID<-ID$ID
 rm(ID)
 # drops <- c("ID")
@@ -131,7 +131,6 @@ data_participant_level <- merge(data_participant_level, Demographics, by.x = "ID
 rm(Demographics)
 
 
-
 #Rename data columns:
 data<-rename(data, c("V1"="ID", "V2"="Group","V3"="TotalTrialNumber","V4"="Trial","V5"="ITI",
                      "V6"="Hemifield","V7"="Accuracy","V8"="RT",
@@ -143,7 +142,9 @@ data<-rename(data, c("V1"="ID", "V2"="Group","V3"="TotalTrialNumber","V4"="Trial
                      "V24"="RejectedTrial","V25"="Art_neg100_450","V26"="PreAlphaPowerLH",
                      "V27"="PreAlphaPowerRH","V28"="PreAlphaAsym","V29"="PrePupilDiameter", "V30"="N2c_GA","V31"="N2i_GA",
                      "V32"="RespLockedCPPSlope","V33"="StimLockedCPPSlope", "V34"="N2cPeakLatency", "V35"="CPPHalfPeakLatency",
-                     "V36"="N2c_PA","V37"="N2i_PA"))   #NOTE: FOR N2c/i, the "_GA" or "_PA" suffix indicates whether N2c/i is measured with a measurement window based                                                        #on Grand average (GA) peak N2c/i latency, or based on Participant level average (PA) peak N2c/i latency
+                     "V36"="N2c_PA","V37"="N2i_PA"))   
+#NOTE: FOR N2c/i,  the _GA or _PA suffix indicates whether N2c/i is measured with a measurement window based
+#on Grand average (GA) peak N2c/i latency,  or based on Participant level average (PA) peak N2c/i latency
              
 #Make the required columns into factors:
 data$Group <- factor(data$Group)
@@ -271,7 +272,8 @@ data_participant_level<-rename(data_participant_level, c("V5"="ValidPreAlphaTria
                      "V27"="FrontalNeg_slope_RightTarget", "V28"="ADHD_Control",
                      "V29"="N2c_LeftTarget_PA","V30"="N2c_RightTarget_PA",
                      "V31"="N2i_LeftTarget_PA","V32"="N2i_RightTarget_PA"))
-#NOTE: FOR N2c/i, the "_GA" or "_PA" suffix indicates whether N2c/i is measured with a measurement window based                                                        #on Grand average (GA) peak N2c/i latency, or based on Participant level average (PA) peak N2c/i latency
+#NOTE: FOR N2c/i ,  the _GA or _PA suffix indicates whether N2c/i is measured with a measurement window based  
+#on Grand average (GA) peak N2c/i latency ,  or based on Participant level average (PA) peak N2c/i latency
 
 write.csv(data_participant_level, file = "participant_level_data.csv", row.names = F)
 
@@ -281,34 +283,28 @@ colnames(data_participant_level)
 #Make the required columns into factors:
 data_participant_level$Group <- factor(data_participant_level$Group)
 
-
 #Rename factor Levels:
 data_participant_level$Group <- revalue(data_participant_level$Group, c("1"="ADHD", "2"="Control"))
 
 
 
-###Re-class required vectors into Logicals:
-#data_participant_level$Blinkneg500to0<-as.logical(data_participant_level$Blinkneg500to0)
-
-                    
-
-#Exclude the following participants from the ADHD group due to clinical cuttoff filter_CPRS_N_B 
-# AD69C', 'AD59C', 'AD27C', 'AD51C', 'AD98C'
-
- #Exclude the following control participants:
-#'C14', 'C259' for filter_CPRS_N_B; %C194 not enough valid trials 
+############## Participant exclusion ####################   
+#Participant level 
+data_participant_level <- dplyr::filter(data_participant_level, 
+                                        ValidCPPTrials > 50 & ((Group=="ADHD" & CPRS_N_B >= 65) | (Group=="Control" & CPRS_N_B <= 60)))
 
 #Single trial
-toBeRemoved<-which(data$ID=="AD69C" | data$ID=="AD59C" | data$ID=="AD27C" | data$ID=="AD51C" | data$ID=="AD98C" | data$ID=="C14" | data$ID=="C259"|  data$ID=="C194")
-if (any(toBeRemoved)) {
-data<-data[-toBeRemoved,]
-}
-#Participant level 
-toBeRemoved<-which(data_participant_level$ID=="AD69C" | data_participant_level$ID=="AD59C" | data_participant_level$ID=="AD27C" | data_participant_level$ID=="AD51C" | data_participant_level$ID=="AD98C" | data_participant_level$ID=="C14" | data_participant_level$ID=="C259"|  data_participant_level$ID=="C194")
-if (any(toBeRemoved)) {
-data_participant_level<-data_participant_level[-toBeRemoved,] 
-}
+data <- dplyr::filter(data, ID %in% data_participant_level$ID)
 
+#This ^ Excludes participants from the ADHD group due to clinical cuttoff CPRS_N_B >= 65
+# AD69C', 'AD59C', 'AD27C', 'AD51C', 'AD98C'
+
+#....and excludes  control participants due to clinical cuttoff CPRS_N_B CPRS_N_B <= 60
+#'C14', 'C259' for filter_CPRS_N_B; 
+
+#....and also excludes C194 because this participant only had 57 valid trials for EEG (less than 50 valid trials for EEG)
+
+######################################################
 
 ```
 
@@ -327,23 +323,25 @@ RT_Hemifield<-update(RT_Group, .~. + Hemifield)
 RT_HemifieldbyGroup<-update(RT_Hemifield, .~. + Hemifield:Group)
 anova(RT_random_intercepts_only, RT_Group, RT_Hemifield, RT_HemifieldbyGroup)
 
-
-
-
 #Look at the main effect of Group:
 # summary(glht(RT_Group))
 
 ```
 
 ```{r, echo=FALSE, message=FALSE, include=FALSE}
-#-------Effect Sizes
+#-------Effect Sizes for the contrasts
+
+#use nlme to get t and df for the Hemifield contrast:
+require(nlme)
+summary(lme(log(RT) ~ Hemifield, random = ~1|ID/ITI/Hemifield/Trial, data = data2[data2$Group=="Control",], na.action = na.omit))
 
 rcontrast<-function(t, df)
 {r<-sqrt(t^2/(t^2 + df))
 print(paste("r = ", r))
 }
+rcontrast(1.89724,  92)
 
-rcontrast(2.8497,  52)
+
 ```
 
 
@@ -353,14 +351,26 @@ rcontrast(2.8497,  52)
 ```{r, echo=FALSE, warning=FALSE}
 #########Break down the signifiant Hemifield by group interaction:
 #look at the effect of Hemifield for ADHD only  -
-summary(glht(lmer(log(RT) ~ Hemifield + (1 | ID)+(1|ITI) + (1|Hemifield)+ (1|Trial), data = data2[data2$Group=="ADHD",], REML=FALSE, na.action = na.omit)))
+summary(glht(lmer(log(RT) ~ Hemifield + (1|ID)+(1|ITI) + (1|Hemifield)+ (1|Trial), data = data2[data2$Group=="ADHD",], REML=FALSE, na.action = na.omit)))
 #look at the effect of Hemifield for Control only - 
-summary(glht(lmer(log(RT) ~ Hemifield + (1 | ID)+(1|ITI) + (1|Hemifield)+ (1|Trial), data = data2[data2$Group=="Control",], REML=FALSE, na.action = na.omit)))
+summary(glht(lmer(log(RT) ~ Hemifield + (1|ID)+(1|ITI) + (1|Hemifield)+ (1|Trial), data = data2[data2$Group=="Control",], REML=FALSE, na.action = na.omit)))
 
-####look at the effect of Group on each Hemifield separatly  -
-# summary(glht(lmer(log(RT) ~ Group + (1 | Group/ID)+(1|ITI) + (1|Trial), data = data2[data2$Hemifield=="Left",], REML=FALSE, na.action = na.omit)))
-# 
-# summary(glht(lmer(log(RT) ~ Group + (1 | Group/ID)+(1|ITI) + (1|Trial), data = data2[data2$Hemifield=="Right",], REML=FALSE, na.action = na.omit)))
+
+
+
+dan1<-lmer(log(RT) ~ 1 + (1 | ID)+(1|ITI) + (1|Trial), data = data2[data2$Group=="Control",], REML=FALSE, na.action = na.omit)
+dan2<-lmer(log(RT) ~ Hemifield + (1 | ID)+(1|ITI) + (1|Hemifield)+ (1|Trial), data = data2[data2$Group=="Control",], REML=FALSE, na.action = na.omit)
+
+1-var(residuals(dan1))/(var(model.response(model.frame(dan1))))
+
+1-var(residuals(dan2))/(var(model.response(model.frame(dan2))))
+
+r_squared_change<-((1-var(residuals(dan2))/(var(model.response(model.frame(dan2)))))  -  
+    (1-var(residuals(dan1))/(var(model.response(model.frame(dan1))))))
+
+r_squared_change
+
+
 
 ```
 
@@ -701,7 +711,7 @@ t.test(data2$CPPonset~ data2$Group)
 
 
 
-#Resp-locked CPP slope analysis (measured on participant level vaveforms, not single-trial)
+#Resp-locked CPP slope analysis (measured on participant level waveforms, not single-trial)
 
 ```{r, echo=FALSE, message=FALSE}
 #Reshape data_participant_level into long format for modeling with lmw4:
@@ -1336,7 +1346,83 @@ qplot(x=Var1, y=Var2, data=cor_data, fill=abs_Pearson_r, geom="tile")+
 ```
 
 
-##I still haven't tried measuring CPP onset on a single-trial basis yet for this data (using the polyfit method Rafa and I developed), I figured I'd just stick with the Participant level measurements using Ger's method from his current biology paper.  I will at some point try looking at single trial CPP, but I'm starting to stress about getting the Thesis writeup finished, so will focus on that for a while now
+##Single trial CPP onset
+
+```{r, echo=FALSE, warning=FALSE}
+
+#remove trials with blinks, artifacts etc and also remove trials witn CPPonset==0 as these are not valid 
+#("9999" are NaNs made it "9999" in MATLAB because R won't read NaNs from .csv file)
+require(dplyr)
+data2<- filter(data, !Blinkneg100_100PR & !LeftFixBreakneg100_100PR & !RightFixBreakneg100_100PR & !Art_neg100_100PR & !BothFixBreakneg100_100PR & CPPonset!=0 & CPPonset<1500)
+
+#add 100 to every CPP onset measure, just shifts the distribution 
+#100ms to the right so there are no negitive measures so we can 
+#do sqrt and log transformations 
+data2$CPPonset=data2$CPPonset+100 
 
 
-###Also I did try predicting participants' RT asymmetry with a basic regression model including pre-alpha asym, N2c-asym, CPP-asym and it doesn't work. I think it is because the data are not clean enough data.
+hist(data2$CPPonset)
+hist(data2$CPPonset, breaks=625,xlim=c(-100,1500))
+
+hist(sqrt(data2$CPPonset))
+
+hist(log(data2$CPPonset))
+
+#
+CPPonset_random_intercepts_only<-lmer(sqrt(CPPonset) ~ 1 + (1 | ID) +(1|ITI) + (1|Hemifield) + (1|Trial), data = data2, REML=FALSE, na.action = na.omit)
+CPPonset_Group<-update(CPPonset_random_intercepts_only, .~. + Group)
+CPPonset_Hemifield<-update(CPPonset_Group, .~. + Hemifield)
+CPPonset_HemifieldbyGroup<-update(CPPonset_Hemifield, .~. + Hemifield:Group)
+anova(CPPonset_random_intercepts_only, CPPonset_Group, CPPonset_Hemifield, CPPonset_HemifieldbyGroup)
+
+# try glmer() with family = Gamma(link = log) 
+CPPonset_random_intercepts_only<-glmer(CPPonset ~ 1 + (1 | ID) +(1|ITI) + (1|Hemifield) + (1|Trial), data = data2, family = Gamma(link = log), na.action = na.omit)
+CPPonset_Group<-update(CPPonset_random_intercepts_only, .~. + Group)
+CPPonset_Hemifield<-update(CPPonset_Group, .~. + Hemifield)
+CPPonset_HemifieldbyGroup<-update(CPPonset_Hemifield, .~. + Hemifield:Group)
+anova(CPPonset_random_intercepts_only, CPPonset_Group, CPPonset_Hemifield, CPPonset_HemifieldbyGroup)
+
+#add 100 
+
+source("summarySE.R") 
+source("summarySEwithin.R") #function to calculate Std.Er of mean
+source("normDataWithin.R")
+plotdata <- summarySEwithin(data2, measurevar="CPPonset", withinvars=c("Hemifield"), betweenvars="Group", idvar="ID")
+ggplot(plotdata, aes(x=Group, y=CPPonset, fill=Hemifield)) +
+    geom_bar(position=position_dodge(.9), colour="Black", stat="identity") + 
+    geom_errorbar(position=position_dodge(.9), width=.3, aes(ymin=CPPonset-se, ymax=CPPonset+se)) + #can change "se" to "ci" if I want to use 95%ci 
+    geom_hline(yintercept=0) +  coord_cartesian(ylim = c(0, 400)) +
+    xlab("Hemifield") + ylab("CPPonset (ms)") +
+    theme(axis.title.x = element_text(face="bold", size=12),
+          axis.text.x  = element_text(face="bold", angle=0,  size=12)) +
+    theme(axis.title.y = element_text(face="bold", size=12),
+          axis.text.y  = element_text(angle=0, vjust=0.5, size=12)) +
+    theme(legend.title = element_text(size=11, face="bold")) +
+    theme(legend.text = element_text(size = 11, face = "bold")) +
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+          panel.background = element_blank(), axis.line = element_line(colour = "black")) 
+
+
+#Kick out outliers
+#####Z-score each participant's CPPonset inside Hemifield####
+data2$IDbyHemifield<-interaction(data2$ID, data2$Hemifield) 
+#calculate mean and sd 
+m <- tapply(data2$CPPonset,data2$IDbyHemifield,mean,na.rm=T)
+s <- sqrt(tapply(data2$CPPonset,data2$IDbyHemifield,var,na.rm=T))
+#calculate CPPonset.Z and save it inside data2.frame
+data2$CPPonset.Z <- (data2$CPPonset-m[data2$IDbyHemifield])/s[data2$IDbyHemifield]
+#check that Z scores have mean=0 and std=1 
+CPPonset.Z_checker <- ddply(data2, c("ID", "Hemifield"), summarise,
+                                     N    = length(CPPonset.Z),
+                                     mean = round(mean(CPPonset.Z)),
+                                     sd   = sd(CPPonset.Z ),
+                                     se   = sd / sqrt(N) )
+summary(CPPonset.Z_checker)
+##Remove trials where absolute CPPonset.Z>3 (i.e. remove outlier CPPonsets)
+data2<-data2[!abs(data2$CPPonset.Z)>3,]
+
+
+```
+
+
+###Still should try some machine learning to classify into ADHD vs Controls.
