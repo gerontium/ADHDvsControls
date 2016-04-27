@@ -16,7 +16,6 @@ output:
 location<-"Monash"
 # location<-"DansLaptop"
 
-
 if (location=="Monash") {
     setwd(("C:/GitHub/ADHDvsControls/Analyses Scripts_R"))
 } else if (location=="DansLaptop") {
@@ -102,7 +101,7 @@ data_participant_level <- read.csv("C:/GitHub/ADHDvsControls/Analyses Scripts_Ma
 } else if (location=="DansLaptop") {
 data_participant_level <- read.csv("C:/Users/Dan/Documents/GitHub/ADHDvsControls/Analyses Scripts_Matlab/participant_level_matrix.csv", header=FALSE)
 } else setwd(("~"))
-#remove the RT measures that were calculated from ERP script - better to extract/colapse RT from the single-trial data_participant_level
+#remove the RT measures that were calculated from ERP script - better to extract/colapse RT from the single-trial data so RT trials are not influenced by EEG artifacts
 data_participant_level<-data_participant_level[,-c(1:4)]
 
 #Import IDs:
@@ -150,7 +149,6 @@ data<-rename(data, c("V1"="ID", "V2"="Group","V3"="TotalTrialNumber","V4"="Trial
 data$Group <- factor(data$Group)
 data$ITI <- factor(data$ITI)
 data$Hemifield <- factor(data$Hemifield)
-# data$Sex <- factor(data$Sex)
 data$Accuracy <- factor(data$Accuracy)
 
 #Rename factor Levels:
@@ -196,12 +194,30 @@ num_trials1 <- ddply(data, c("ID"), summarise,
                Trials    = length(RT))
 mean(num_trials1$Trials)
 
+##################Accuracy ##########################
 Accuracy_checker <- ddply(data, c("ID"), summarise,
                Hits  = sum(Accuracy=="Hit"),
                Misses = sum(Accuracy=="Miss"))
 Accuracy_checker$Total=Accuracy_checker$Hits+Accuracy_checker$Misses
 Accuracy_checker$Accuracy=(Accuracy_checker$Hits/Accuracy_checker$Total)*100
 summary(Accuracy_checker$Accuracy)
+
+Accuracy_checker_Hemifield <- ddply(data, c("ID", "Hemifield"), summarise,
+               Hits  = sum(Accuracy=="Hit"),
+               Misses = sum(Accuracy=="Miss"))
+Accuracy_checker_Hemifield$Total=Accuracy_checker_Hemifield$Hits+Accuracy_checker_Hemifield$Misses
+Accuracy_checker_Hemifield$Accuracy=(Accuracy_checker_Hemifield$Hits/Accuracy_checker_Hemifield$Total)*100
+#Bring Target-Hemifield up into wide format
+Accuracy_checker_Hemifield <- dcast(Accuracy_checker_Hemifield, ID  ~ Hemifield, value.var="Accuracy")
+Accuracy_checker_Hemifield<-rename(Accuracy_checker_Hemifield, c("Left"="Accuracy_Left", "Right"="Accuracy_Right"))
+#merge Accuracy by hemifield in with in overall accuracy
+Accuracy_checker <- merge(Accuracy_checker, Accuracy_checker_Hemifield, by.x = "ID", by.y = "ID")
+rm(Accuracy_checker_Hemifield)
+#Accuracy_asym: Negitive is better accuracy for left targets, positive is better accuracy for right targets 
+Accuracy_checker$Accuracy_Asym<-(Accuracy_checker$Accuracy_Right - Accuracy_checker$Accuracy_Left)/(Accuracy_checker$Accuracy_Right + Accuracy_checker$Accuracy_Left)
+
+##############################################################
+
 
 #Remove rejected trials with trigger conflicts 
 data<-data[!data$RejectedTrial,]
@@ -218,6 +234,13 @@ data<-data[complete.cases(data),]
 #################################################################################################################################
 data$log_RT<-log(data$RT) #log
 
+data$sqrt_RT<-sqrt(data$RT)
+
+ggplot(data, aes(RT))  + geom_histogram(aes(y=..count..), colour="black", fill="white") + facet_wrap(~ Group)
+ggplot(data, aes(log_RT))  + geom_histogram(aes(y=..count..), colour="black", fill="white") + facet_wrap(~ Group)
+ggplot(data, aes(sqrt_RT))  + geom_histogram(aes(y=..count..), colour="black", fill="white") + facet_wrap(~ Group)
+
+ggplot(data, aes(RT))  + geom_histogram(aes(y=..count..), colour="black", fill="white") + facet_wrap(~ ID)
 
 
 #####Z-score each participant's log_RT data ####
@@ -233,24 +256,27 @@ log_RT.Z_checker <- ddply(data, c("ID"), summarise,
                sd   = sd(log_RT.Z ),
                se   = sd / sqrt(N))
 summary(log_RT.Z_checker$mean)
+summary(log_RT.Z_checker$sd)
 
 #Remove trials where absolute log_RT.Z>3 (i.e. remove outlier RTs)
 data<-data[!abs(data$log_RT.Z)>3,]
 
 
 #plot again after outlier removal:
-ggplot(data, aes(RT))  + geom_histogram(aes(y=..count..), colour="black", fill="white") 
-hist_RT <- ggplot(data, aes(RT))  + geom_histogram(aes(y=..count..), colour="black", fill="white") 
-hist_RT + facet_wrap(~ ID)
+ggplot(data, aes(RT))  + geom_histogram(aes(y=..count..), colour="black", fill="white") + facet_wrap(~ Group)
+ggplot(data, aes(log_RT))  + geom_histogram(aes(y=..count..), colour="black", fill="white") + facet_wrap(~ Group)
+ggplot(data, aes(sqrt_RT))  + geom_histogram(aes(y=..count..), colour="black", fill="white") + facet_wrap(~ Group)
+
+ggplot(data, aes(RT))  + geom_histogram(aes(y=..count..), colour="black", fill="white") + facet_wrap(~ ID)
 
 
 #Make PostAlpha contralateral (PostAlpha_c) and -Ipsilateral (PostAlpha_i) variables:
-A<-data$Hemifield=="Left"
-data$PostAlpha_c[A]<-data$RightHemi_PostAlpha[A]
-data$PostAlpha_c[!A]<-data$LeftHemi_PostAlpha[!A]
-data$PostAlpha_i[!A]<-data$LeftHemi_PostAlpha[!A]##################### MATLAB script doesn't extract this yet!!!
-data$PostAlpha_i[A]<-data$RightHemi_PostAlpha[A]
-rm(A)
+# A<-data$Hemifield=="Left"
+# data$PostAlpha_c[A]<-data$RightHemi_PostAlpha[A]
+# data$PostAlpha_c[!A]<-data$LeftHemi_PostAlpha[!A]
+# data$PostAlpha_i[!A]<-data$LeftHemi_PostAlpha[!A]##################### MATLAB script doesn't extract this yet!!!
+# data$PostAlpha_i[A]<-data$RightHemi_PostAlpha[A]
+# rm(A)
 
 
 
@@ -275,26 +301,63 @@ data_participant_level<-rename(data_participant_level, c("V5"="ValidPreAlphaTria
 #NOTE: FOR N2c/i ,  the _GA or _PA suffix indicates whether N2c/i is measured with a measurement window based  
 #on Grand average (GA) peak N2c/i latency ,  or based on Participant level average (PA) peak N2c/i latency
 
-write.csv(data_participant_level, file = "participant_level_data.csv", row.names = F)
-
 #Look at Column names:
 colnames(data_participant_level)
              
 #Make the required columns into factors:
 data_participant_level$Group <- factor(data_participant_level$Group)
+data_participant_level$Gender <- factor(data_participant_level$Gender)
+data_participant_level$Hand_SR_B <- factor(data_participant_level$Hand_SR_B)
+data_participant_level$DAT1_3UTR<- factor(data_participant_level$DAT1_3_Group)
+data_participant_level$DAT1_i8<- factor(data_participant_level$DAT1_i8_Group)
 
 #Rename factor Levels:
 data_participant_level$Group <- revalue(data_participant_level$Group, c("1"="ADHD", "2"="Control"))
+data_participant_level$Gender <- revalue(data_participant_level$Gender, c("1"="Male", "2"="Female"))
+data_participant_level$Handedness_SelfReport <-  revalue(data_participant_level$Hand_SR_B, c("1"="Left", "2"="Right"))
+data_participant_level$DAT1_3UTR<- revalue(data_participant_level$DAT1_3UTR, c("1"="non10repeat_homozygous", "2"="10repeat_homozygous"))
+data_participant_level$DAT1_i8<- revalue(data_participant_level$DAT1_i8, c("1"="non6repeat_homozygous", "2"="6repeat_homozygous"))
+    
+
+    
+#add in overall accuracy
+data_participant_level <- merge(data_participant_level, Accuracy_checker, by.x = "ID", by.y = "ID")
+
+#Rename the full scale IQ, Edinburgh Handedness scale, reading for simplicity 
+data_participant_level$IQ<-data_participant_level$eFSIQ_B
+data_participant_level$Handedness_Edinburgh<-data_participant_level$HQ_B
+data_participant_level$Reading <-data_participant_level$Read_Standard_B #WRAT Reading standard score (at time B)
+data_participant_level$Spelling<-data_participant_level$Spell_Standard_B # WRAT Spelling standard score (at time B)
+
+data_participant_level$Accuracy_Asym.Z<-scale(data_participant_level$Accuracy_Asym)
 
 
+max(abs(scale(data_participant_level$Accuracy[data_participant_level$Group=="ADHD"])))
+max(abs(scale(data_participant_level$Accuracy_Left[data_participant_level$Group=="ADHD"])))
+max(abs(scale(data_participant_level$Accuracy_Right[data_participant_level$Group=="ADHD"])))
+max(abs(scale(data_participant_level$Accuracy_Asym[data_participant_level$Group=="ADHD"])))
+
+max(abs(scale(data_participant_level$Accuracy[data_participant_level$Group=="Control"])))
+max(abs(scale(data_participant_level$Accuracy_Left[data_participant_level$Group=="Control"])))
+max(abs(scale(data_participant_level$Accuracy_Right[data_participant_level$Group=="Control"])))
+max(abs(scale(data_participant_level$Accuracy_Asym[data_participant_level$Group=="Control"])))
+
+t.test(data_participant_level$Accuracy_Asym~data_participant_level$Group)
+
+t.test(data_participant_level$Accuracy_Asym[data_participant_level$Group=="ADHD"],mu=0)
+
+t.test(data_participant_level$Accuracy_Asym[data_participant_level$Group=="Control"],mu=0)
+
+#Save the participant level file as .csv
+write.csv(data_participant_level, file = "participant_level_data.csv", row.names = F)
 
 ############## Participant exclusion ####################   
-#Participant level 
+#Participant level
 data_participant_level <- dplyr::filter(data_participant_level, 
                                         ValidCPPTrials > 50 & ((Group=="ADHD" & CPRS_N_B >= 65) | (Group=="Control" & CPRS_N_B <= 60)))
 
 #Single trial
-data <- dplyr::filter(data, ID %in% data_participant_level$ID)
+data <-data[data$ID %in% data_participant_level$ID, ] 
 
 #This ^ Excludes participants from the ADHD group due to clinical cuttoff CPRS_N_B >= 65
 # AD69C', 'AD59C', 'AD27C', 'AD51C', 'AD98C'
@@ -303,7 +366,6 @@ data <- dplyr::filter(data, ID %in% data_participant_level$ID)
 #'C14', 'C259' for filter_CPRS_N_B; 
 
 #....and also excludes C194 because this participant only had 57 valid trials for EEG (less than 50 valid trials for EEG)
-
 ######################################################
 
 ```
@@ -323,10 +385,40 @@ RT_Hemifield<-update(RT_Group, .~. + Hemifield)
 RT_HemifieldbyGroup<-update(RT_Hemifield, .~. + Hemifield:Group)
 anova(RT_random_intercepts_only, RT_Group, RT_Hemifield, RT_HemifieldbyGroup)
 
-#Look at the main effect of Group:
-# summary(glht(RT_Group))
+RT_random_intercepts_only<-lmer(log(RT) ~ 1 + (Hemifield | ID) +(1|ITI) + (1|Trial), data = data2, REML=FALSE, na.action = na.omit)
+RT_Group<-update(RT_random_intercepts_only, .~. + Group)
+RT_Hemifield<-update(RT_Group, .~. + Hemifield)
+RT_HemifieldbyGroup<-update(RT_Hemifield, .~. + Hemifield:Group)
+anova(RT_random_intercepts_only, RT_Group, RT_Hemifield, RT_HemifieldbyGroup)
+
+
+
+RT_collapsed<-ddply(data2, .(ID, Hemifield, ITI, Group), summarise, RT=mean(RT))
+
+summary(m2<-lmerTest::lmer(log(RT) ~ 1 + Group + Hemifield + Group:Hemifield + 
+                               (1 | ID) + 
+                               (Hemifield | ITI), 
+                           data = RT_collapsed, REML=FALSE, na.action = na.omit))
+
+
+
+
+
+ezANOVA(
+    data = data2
+    , dv = .(log_RT)
+    , wid = .(ID)
+    , within = .(Hemifield)
+    , within_full = .(Hemifield, ITI, Trial)
+    , between = (Group)
+    , type = 3
+    , detailed = F
+)
+
 
 ```
+
+
 
 ```{r, echo=FALSE, message=FALSE, include=FALSE}
 #-------Effect Sizes for the contrasts
@@ -468,8 +560,32 @@ N2_HemifieldbyGroup<-update(N2_Hemisphere, .~. + Hemifield:Group)
 N2_HemispherebyGroup<-update(N2_HemifieldbyGroup, .~. + Hemisphere:Group)
 N2_HemifieldbyHemisphere<-update(N2_HemispherebyGroup, .~. + Hemisphere:Hemifield)
 N2_HemifieldbyGroupbyHemisphere<-update(N2_HemifieldbyHemisphere, .~. + Hemifield:Group:Hemisphere)
-
 anova(N2_random_intercepts_only, N2_Group, N2_Hemifield, N2_Hemisphere, N2_HemifieldbyGroup, N2_HemispherebyGroup, N2_HemifieldbyHemisphere, N2_HemifieldbyGroupbyHemisphere)
+
+
+
+N2_random_effects_only<-lmer(N2 ~ 1 + (Hemifield | ID/Hemisphere) +(1|ITI) + (1|Trial), data = DF, REML=FALSE, na.action = na.omit)
+N2_Group<-update(N2_random_effects_only, .~. + Group)
+N2_Hemifield<-update(N2_Group, .~. + Hemifield)
+N2_Hemisphere<-update(N2_Hemifield, .~. + Hemisphere)
+N2_HemifieldbyGroup<-update(N2_Hemisphere, .~. + Hemifield:Group)
+N2_HemispherebyGroup<-update(N2_HemifieldbyGroup, .~. + Hemisphere:Group)
+N2_HemifieldbyHemisphere<-update(N2_HemispherebyGroup, .~. + Hemisphere:Hemifield)
+N2_HemifieldbyGroupbyHemisphere<-update(N2_HemifieldbyHemisphere, .~. + Hemifield:Group:Hemisphere)
+anova(N2_random_effects_only, N2_Group, N2_Hemifield, N2_Hemisphere, N2_HemifieldbyGroup, N2_HemispherebyGroup, N2_HemifieldbyHemisphere, N2_HemifieldbyGroupbyHemisphere)
+
+##Try the old ANOVA approach 
+ezANOVA(
+    data = DF
+    , dv = .(N2)
+    , wid = .(ID)
+    , within = .(Hemifield, Hemisphere)
+    , within_full = .(Hemifield, Hemisphere, ITI, Trial)
+    , between = .(Group)
+    , observed = .(Group, Hemisphere)
+    , type = 3
+    , detailed = F
+)
 
 ```
 
@@ -617,6 +733,19 @@ CPPonset_Hemifield<-update(CPPonset_random_intercepts_only, .~. + Hemifield)
 CPPonset_Group<-update(CPPonset_Hemifield, .~. + Group)
 CPPonset_Hemifield_By_Group<-update(CPPonset_Group, .~. + Hemifield*Group)
 anova(CPPonset_random_intercepts_only, CPPonset_Hemifield, CPPonset_Group, CPPonset_Hemifield_By_Group)
+
+
+ezANOVA(
+    data = CPPonset_participant_level_long
+    , dv = .(CPPonset)
+    , wid = .(ID)
+    , within = .(Hemifield)
+    , within_full = .(Hemifield)
+    , between = (Group)
+    , type = 3
+    , detailed = F
+)
+
 ```
 
 ###So there is a significant Group x Hemifield effect for CPP onset
