@@ -36,12 +36,12 @@ library(png)
 library(grid)
 
 ###### Import single trial data_Resp_locked_ERP:
-# data_Resp_locked_ERP <-read.csv("C:/GitHub/ADHDvsControls/Analyses Scripts_Matlab/master_matrix_R_Resp_locked_ERP.csv", header=FALSE)
+data_Resp_locked_ERP <-read.csv("C:/GitHub/ADHDvsControls/Analyses Scripts_Matlab/master_matrix_R_Resp_locked_ERP.csv", header=FALSE)
 
-data_Resp_locked_ERP <- read.csv("C:/Users/Dan/Documents/GitHub/ADHDvsControls/Analyses Scripts_Matlab/master_matrix_R_Resp_locked_ERP.csv", header=FALSE)
+# data_Resp_locked_ERP <- read.csv("C:/Users/Dan/Documents/GitHub/ADHDvsControls/Analyses Scripts_Matlab/master_matrix_R_Resp_locked_ERP.csv", header=FALSE)
 #Import IDs:
-# ID <- read.table("C:/GitHub/ADHDvsControls/Analyses Scripts_Matlab/ID_vector_Resp_locked_ERP.csv", quote="\"")
-ID <- read.table("C:/Users/Dan/Documents/GitHub/ADHDvsControls/Analyses Scripts_Matlab/ID_vector_Resp_locked_ERP.csv", quote="\"")
+ID <- read.table("C:/GitHub/ADHDvsControls/Analyses Scripts_Matlab/ID_vector_Resp_locked_ERP.csv", quote="\"")
+# ID <- read.table("C:/Users/Dan/Documents/GitHub/ADHDvsControls/Analyses Scripts_Matlab/ID_vector_Resp_locked_ERP.csv", quote="\"")
 
 
 data_Resp_locked_ERP$ID<-data_Resp_locked_ERP[,1]

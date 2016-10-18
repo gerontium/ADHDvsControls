@@ -486,12 +486,16 @@ end
     %For each participant this specify the 4 occipito-pariatal electrodes for each hemisphere that show the greatest desyncronisation difference between cont/ipsilateral targets
         LH_desync(s,:)= left_minus_right_per_subject(s,LH_elec);
     [temp1,temp2] = sort(LH_desync(s,:));
-    LH_ROI(s,:)= LH_elec(temp2(5:7)); %DN: pick the 3 parieto-occipito that show the highest left_minus_right values (8:11)
+    LH_ROI(s,:)= LH_elec(temp2(5:7)); %DN: pick the 3 Left Hemisphere parieto-occipito that show the highest left_minus_right values (5:7)
+    LH_ROI_s =  LH_ROI(s,:);
     
     RH_desync(s,:)= left_minus_right_per_subject(s,RH_elec);
     [temp1,temp2] = sort(RH_desync(s,:));
-    RH_ROI(s,:)= RH_elec(temp2(1:3)); %DN: pick the 3 parieto-occipito that show the lowest left_minus_right values (1:4)
+    RH_ROI(s,:)= RH_elec(temp2(1:3)); %DN: pick the 3 Right Hemisphere parieto-occipito that show the lowest left_minus_right values (1:3)
+    RH_ROI_s =  RH_ROI(s,:);
     
+    group_path={'ADHD\','Controls\'};       
+    save([path, group_path{group}, subject_folder{s} '\ROIs.mat'],'LH_ROI_s','RH_ROI_s')
  end
  
 %% DN: combine LH_ROI = and RH_ROI electrodes together in ROIs_LH_RH, and ROIs_RH_LH for an ipsicon type thing

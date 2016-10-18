@@ -1,0 +1,403 @@
+---
+title: "ADHD_Control_Markdown_Stim_locked_AlphaPower"
+author: "Daniel Newman"
+output:
+  html_document:
+    fig_width: 8
+    keep_md: yes
+  word_document: default
+---
+
+```{r Load and Pre-Process the single trial Data, echo=FALSE, include=FALSE}
+
+####Which computer/directory is this being run on?
+location<-"Monash"
+# location<-"DansLaptop"
+
+if (location=="Monash") {
+    setwd(("C:/GitHub/ADHDvsControls/Analyses Scripts_R"))
+} else if (location=="DansLaptop") {
+    setwd(("C:/Users/Dan/Documents/GitHub/ADHDvsControls/Analyses Scripts_R"))
+} else setwd(("~"))
+
+
+
+
+
+####################################
+#######  How to use ################
+####################################
+
+# 1) Install the packages and software specified below. (consider also updating all installed packages by chosing Update on the Packages tab)
+# 2) Set the working directory (setwd) above, and directory where you have "data_ParticipantLevel", "master_matrix_R" and "ID_vector" saved
+# 3) Hit Knit Word (or Knit HTML)! (Output can take while due to bootstrapping the robust effect size and calculating the Bayesian Highest Density Iinterval)
+
+
+####################################
+######  FIRST TIME ONLY ############
+####################################
+
+#Remove # in front of the line below and run the code. Replace the # after installing the packages, otherwise the R markdown script will give errors.
+
+# install.packages(c("MASS", "akima", "robustbase", "cobs", "robust", "mgcv", "scatterplot3d", "quantreg", "rrcov", "lars", "pwr", "trimcluster", "mc2d", "psych", "Rfit","MBESS", "BayesFactor", "PoweR", "ggplot2", "reshape2", "plyr", "devtools", "rmarkdown","gmodels", "HLMdiag", "car", "gridExtra", "bootES", "BEST","foreign","nlme","pastecs","multcomp","ggplot2","compute.es","ez","lattice","lme4","effects","diagram","png", "grid", "dplyr"))
+
+#Installation of the robust statistics package: Remove # in front of each of 4 lines below and run the code. Replace the # after installing the packages, otherwise the R markdown script will give errors.
+
+# install.packages("devtools")
+# library("devtools")
+# install_github("mrxiaohe/WRSAlpha_Asym")
+# install_github("nicebread/WRS", subdir="pkg")
+
+
+#Download and install JAGS to calculate Bayesian HDI: http://sourceforge.net/projects/mcmc-jags/
+
+###################################################################################################################################
+
+## Install relevant libraries 
+library(foreign)
+library(car)
+library(nlme)
+library(ggplot2)
+library(pastecs)
+library(psych)
+library(plyr)
+library(multcomp)
+library(reshape2)
+library(compute.es)
+library(ez)
+library(lattice)
+library(lme4)
+library(png)
+library(grid)
+
+###### Import single trial data:
+if (location=="Monash") {
+data <- read.csv("C:/GitHub/ADHDvsControls/Analyses Scripts_Matlab/master_matrix_R.csv", header=FALSE)
+} else if (location=="DansLaptop") {
+data <- read.csv("C:/Users/Dan/Documents/GitHub/ADHDvsControls/Analyses Scripts_Matlab/master_matrix_R.csv", header=FALSE)
+} else setwd(("~"))
+#Import IDs:
+if (location=="Monash") {
+ID <- read.table("C:/GitHub/ADHDvsControls/Analyses Scripts_Matlab/ID_vector.csv", quote="\"")
+} else if (location=="DansLaptop") {
+ID <- read.table("C:/Users/Dan/Documents/GitHub/ADHDvsControls/Analyses Scripts_Matlab/ID_vector.csv", quote="\"")
+} else setwd(("~"))
+
+data$ID<-data[,1]
+#Replace the participant numbers with IDs:
+data[,1]<-ID[,1]
+#Remove the seperate ID vector now it has been included into data dataframe
+rm(ID)
+drops <- c("ID")
+data<-data[,!(names(data) %in% drops)]
+
+
+
+###### Import data_ParticipantLevel:
+if (location=="Monash") {
+data_participant_level <- read.csv("C:/GitHub/ADHDvsControls/Analyses Scripts_Matlab/participant_level_matrix.csv", header=FALSE)
+} else if (location=="DansLaptop") {
+data_participant_level <- read.csv("C:/Users/Dan/Documents/GitHub/ADHDvsControls/Analyses Scripts_Matlab/participant_level_matrix.csv", header=FALSE)
+} else setwd(("~"))
+#remove the RT measures that were calculated from ERP script - better to extract/colapse RT from the single-trial data so RT trials are not influenced by EEG artifacts
+data_participant_level<-data_participant_level[,-c(1:4)]
+
+#Import IDs:
+if (location=="Monash") {
+ID <- read.table("C:/GitHub/ADHDvsControls/Analyses Scripts_Matlab/IDs.csv", quote="\"")
+} else if (location=="DansLaptop") {
+ID <- read.csv("C:/Users/Dan/Documents/GitHub/ADHDvsControls/Analyses Scripts_Matlab/IDs.csv", header=F)
+} else setwd(("~"))
+ID<-plyr::rename(ID,c("V1"="ID"))
+data_participant_level$ID<-ID$ID
+rm(ID)
+# drops <- c("ID")
+# data_participant_level<-data_participant_level[,!(names(data_participant_level) %in% drops)]
+
+#import demographic data
+if (location=="Monash") {
+Demographics<-read.csv("C:/GitHub/ADHDvsControls/Analyses Scripts_R/ADHD_Control_Demographics_etc.csv", header=T)
+} else if (location=="DansLaptop") {
+Demographics<-read.csv("C:/Users/Dan/Documents/GitHub/ADHDvsControls/Analyses Scripts_R/ADHD_Control_Demographics_etc.csv", header=T)
+} else setwd(("~"))
+
+
+
+#Merge Demographics into data_participant_level:
+data_participant_level <- merge(data_participant_level, Demographics, by.x = "ID", by.y = "ID")
+rm(Demographics)
+
+
+#Rename data columns:
+data<-rename(data, c("V1"="ID", "V2"="Group","V3"="TotalTrialNumber","V4"="Trial","V5"="ITI",
+                     "V6"="Hemifield","V7"="Accuracy","V8"="RT",
+                     "V9"="Blinkneg500to0","V10"="Blinkneg100_100PR","V11"="Blinkneg100_450",
+                     "V12"="LeftFixBreakneg500_0","V13"="LeftFixBreakneg100_100PR","V14"="LeftFixBreakneg100_450",
+                     "V15"="RightFixBreakneg500_0","V16"="RightFixBreakneg100_100PR","V17"="RightFixBreakneg100_450",
+                     "V18"="BothFixBreakneg500_0","V19"="BothFixBreakneg100_100PR","V20"="BothFixBreakneg100_450",
+                     "V21"="Art_neg500_0","V22"="Art_neg100_100PR","V23"="BLANK",
+                     "V24"="RejectedTrial","V25"="Art_neg100_450","V26"="PreAlphaPowerLH",
+                     "V27"="PreAlphaPowerRH","V28"="PreAlphaAsym","V29"="PrePupilDiameter", "V30"="N2c_GA","V31"="N2i_GA",
+                     "V32"="RespLockedAlpha_AsymSlope","V33"="StimLockedAlpha_AsymSlope", "V34"="N2cPeakLatency", "V35"="Alpha_AsymHalfPeakLatency",
+                     "V36"="N2c_PA","V37"="N2i_PA"))   
+#NOTE: FOR N2c/i,  the _GA or _PA suffix indicates whether N2c/i is measured with a measurement window based
+#on Grand average (GA) peak N2c/i latency,  or based on Participant level average (PA) peak N2c/i latency
+             
+#Make the required columns into factors:
+data$Group <- factor(data$Group)
+data$ITI <- factor(data$ITI)
+data$Hemifield <- factor(data$Hemifield)
+data$Accuracy <- factor(data$Accuracy)
+
+#Rename factor Levels:
+data$Group <- revalue(data$Group, c("1"="ADHD", "2"="Control"))
+data$ITI <- revalue(data$ITI, c("1"="3060ms", "2"="5170ms", "3"="7290ms"))
+data$Hemifield <- revalue(data$Hemifield, c("1"="Left", "2"="Right"))
+# data$Sex <- revalue(data$Sex, c("1"="Male", "2"="Female"))
+data$Accuracy <- revalue(data$Accuracy, c("1"="Hit", "0"="Miss"))
+
+
+#Re-class required vectors into Logicals:
+data$Blinkneg500to0<-as.logical(data$Blinkneg500to0)
+data$Blinkneg100_100PR<-as.logical(data$Blinkneg100_100PR)
+data$Blinkneg100_450<-as.logical(data$Blinkneg100_450)
+data$LeftFixBreakneg500_0<-as.logical(data$LeftFixBreakneg500_0)
+data$LeftFixBreakneg100_100PR<-as.logical(data$LeftFixBreakneg100_100PR)
+data$LeftFixBreakneg100_450<-as.logical(data$LeftFixBreakneg100_450)
+data$RightFixBreakneg500_0<-as.logical(data$RightFixBreakneg500_0)
+data$RightFixBreakneg100_100PR<-as.logical(data$RightFixBreakneg100_100PR)
+data$RightFixBreakneg100_450<-as.logical(data$RightFixBreakneg100_450)
+data$BothFixBreakneg500_0<-as.logical(data$BothFixBreakneg500_0)
+data$BothFixBreakneg100_100PR<-as.logical(data$BothFixBreakneg100_100PR)
+data$BothFixBreakneg100_100PR<-as.logical(data$BothFixBreakneg100_100PR)
+data$BothFixBreakneg100_450<-as.logical(data$BothFixBreakneg100_450)
+data$Art_neg500_0<-as.logical(data$Art_neg500_0)
+data$Art_neg100_100PR<-as.logical(data$Art_neg100_100PR)
+data$Art_neg100_450<-as.logical(data$Art_neg100_450)
+data$RejectedTrial<-as.logical(data$RejectedTrial)
+
+                     
+                     
+#Order any ordinal factors (may have to do this the "trail" or later too) 
+# by defult R uses polynomial contrasts for ordered factors, I'd rather treat light as unordered and to "treatment" contrasts, i.e. Low vs Med, Low vs High
+data$ITI <- ordered(data$ITI, levels = c("3060ms", "5170ms", "7290ms"))  
+# data$Trial <- ordered(data$Trial)  
+
+#Only keep the columns I want
+data<-dplyr::select(data,
+ ID,                        Group,                     TotalTrialNumber,          Trial,                     ITI,                      
+ Hemifield,                 Accuracy,                  RT,                       Blinkneg500to0,           Blinkneg100_100PR,        
+ Blinkneg100_450,           LeftFixBreakneg500_0,      LeftFixBreakneg100_100PR,  LeftFixBreakneg100_450,    RightFixBreakneg500_0,    
+ RightFixBreakneg100_100PR, RightFixBreakneg100_450,   BothFixBreakneg500_0,      BothFixBreakneg100_100PR,  BothFixBreakneg100_450,  
+ Art_neg500_0,              Art_neg100_100PR,          RejectedTrial,             Art_neg100_450)
+
+
+```
+
+```{r Load and Pre-Process the single trial by time-point data_AlphaPower, echo=FALSE, include=FALSE}
+
+
+
+###### Import single trial data_AlphaPower and IDs:
+
+if (location=="Monash") {
+data_AlphaPower <-read.csv("C:/GitHub/ADHDvsControls/Analyses Scripts_Matlab/master_matrix_R_Stim_locked_AlphaPower.csv", header=FALSE)
+ID <- read.table("C:/GitHub/ADHDvsControls/Analyses Scripts_Matlab/ID_vector_Stim_locked_AlphaPower.csv", quote="\"")
+} else if (location=="DansLaptop") {
+data_AlphaPower <-read.csv("C:/Users/Dan/Documents/GitHub/ADHDvsControls/Analyses Scripts_Matlab/master_matrix_R_Stim_locked_AlphaPower.csv", header=FALSE)
+ID <- read.table("C:/Users/Dan/Documents/GitHub/ADHDvsControls/Analyses Scripts_Matlab/ID_vector_Stim_locked_AlphaPower.csv", quote="\"")
+} else setwd(("~"))
+
+data_AlphaPower$ID<-data_AlphaPower[,1]
+#Replace the participant numbers with IDs:
+data_AlphaPower[,1]<-ID[,1]
+#Remove the seperate ID vector now it has been included into data_AlphaPower dataframe
+drops <- c("ID")
+data_AlphaPower<-data_AlphaPower[,!(names(data_AlphaPower) %in% drops)]
+rm(ID)
+rm(drops)
+
+
+
+#Rename data_AlphaPower columns:
+data_AlphaPower<-rename(data_AlphaPower, c("V1"="ID", "V2"="TotalTrialNumber","V3"="Trial","V4"="LeftHemiAlpha",
+                     "V5"="RightHemiAlpha","V6"="Time")) 
+
+#Make the required columns into factors:
+data_AlphaPower$Group <- factor(data_AlphaPower$Group)
+
+#Rename factor Levels:
+data_AlphaPower$Group <- revalue(data_AlphaPower$Group, c("1"="ADHD", "2"="Control"))
+
+#Calculate Alpha Asymmetry Index
+data_AlphaPower$Alpha_Asym <- (data_AlphaPower$RightHemiAlpha - data_AlphaPower$LeftHemiAlpha)/ (data_AlphaPower$RightHemiAlpha + data_AlphaPower$LeftHemiAlpha)
+
+summary(data_AlphaPower$TotalTrialNumber)
+summary(data$TotalTrialNumber)
+
+#Merge "data_AlphaPower" with the "data" dataframe to get RejectedTrial artifacts etc
+data_AlphaPower<-merge(data_AlphaPower, data, by.x = c("ID", "Trial"), by.y = c("ID", "Trial"))
+
+
+###############Data Cleaning For Single Trial data_AlphaPower######################
+
+#Remove rejected trials with trigger conflicts 
+data_AlphaPower<-data_AlphaPower[!data_AlphaPower$RejectedTrial,]
+#Remove trials where they missed the target
+data_AlphaPower<-data_AlphaPower[data_AlphaPower$Accuracy=="Hit",]
+#Remove trials where RT longer than 1000ms (i.e. after target finished)
+data_AlphaPower<-data_AlphaPower[data_AlphaPower$RT<1880,]
+#Remove trials where RT faster than 100ms (i.e. too fast must be false alarm)
+data_AlphaPower<-data_AlphaPower[data_AlphaPower$RT>200,]
+#Remove trials with missing values :
+data_AlphaPower<-data_AlphaPower[complete.cases(data_AlphaPower),] 
+
+data_AlphaPower<-data_AlphaPower[!data_AlphaPower$Blinkneg500to0 & !data_AlphaPower$Blinkneg100_100PR & !data_AlphaPower$LeftFixBreakneg500_0 & !data_AlphaPower$LeftFixBreakneg100_100PR  & !data_AlphaPower$RightFixBreakneg500_0  & !data_AlphaPower$RightFixBreakneg100_100PR & !data_AlphaPower$BothFixBreakneg500_0 & !data_AlphaPower$BothFixBreakneg100_100PR  & !data_AlphaPower$Art_neg500_0  & !data_AlphaPower$Art_neg100_100PR, ]
+
+```
+
+
+
+##Plot Alpha_Asym by Hemifield and Group:
+
+```{r, message=FALSE}
+
+source("summarySE.R") 
+source("summarySEwithin.R") #function to calculate Std.Er of mean
+source("normDataWithin.R")
+plotdata_Alpha_Asym <- summarySEwithin(data_AlphaPower, measurevar="Alpha_Asym", betweenvars=c("Group"), withinvars=c("Time", "Hemifield"), idvar="ID")
+plotdata_Alpha_Asym$Time<-as.numeric(as.character(plotdata_Alpha_Asym$Time))
+summary(plotdata_Alpha_Asym$Time)
+
+#Alpha_Asym Group on same plot
+RespLockedAlpha_Asym_Plot<-ggplot(plotdata_Alpha_Asym, aes(x=Time, y=Alpha_Asym, color=Hemifield,fill=Hemifield, linetype=Group)) + 
+    geom_line(size=1.4) + geom_ribbon(aes(ymin=Alpha_Asym-ci, ymax=Alpha_Asym+ci), alpha = 0.3, colour=NA) + #geom_errorbar(aes(ymin=Alpha_Asym-se, ymax=Alpha_Asym+se), alpha = 0.1) +  
+        geom_hline(yintercept=0, alpha = 0.5) + geom_vline(xintercept=0, alpha = 0.5) +   
+    coord_cartesian(ylim = c(-0.15, 0.15),  xlim = c(-500, 1800)) +
+    xlab("Time") + ylab("Alpha_Asym") +
+    theme(axis.title.x = element_text(face="bold", size=12),
+          axis.text.x  = element_text(face="bold", angle=0,  size=12)) +
+    theme(axis.title.y = element_text(face="bold", size=12),
+          axis.text.y  = element_text(angle=0, vjust=0.5, size=12)) +
+    theme(legend.title = element_text(size=11, face="bold")) +
+    theme(legend.text = element_text(size = 11, face = "bold")) +
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+          panel.background = element_blank(), axis.line = element_line(colour = "black"))
+
+RespLockedAlpha_Asym_Plot
+
+
+
+save(RespLockedAlpha_Asym_Plot, file="RespLockedAlpha_Asym_Plot.gg")
+
+```
+
+##Plot Post-target Alpha Desync by Hemisphere Hemifield and Group:
+
+```{r, message=FALSE}
+
+# Make AlphaPower contralateral (AlphaPower_c) and -Ipsilateral (AlphaPower_i) variables:
+A<-data_AlphaPower$Hemifield=="Left"
+data_AlphaPower$AlphaPower_c[A]<-data_AlphaPower$RightHemiAlpha[A]
+data_AlphaPower$AlphaPower_c[!A]<-data_AlphaPower$LeftHemiAlpha[!A]
+data_AlphaPower$AlphaPower_i[!A]<-data_AlphaPower$RightHemiAlpha[!A]
+data_AlphaPower$AlphaPower_i[A]<-data_AlphaPower$LeftHemiAlpha[A]
+rm(A)
+
+
+#AlphaPower_c
+plotdata_AlphaPower_c <- summarySEwithin(data_AlphaPower, measurevar="AlphaPower_c", betweenvars=c("Group"), withinvars=c("Time", "Hemifield"), idvar="ID")
+plotdata_AlphaPower_c$Time<-as.numeric(as.character(plotdata_AlphaPower_c$Time))
+summary(plotdata_AlphaPower_c$Time)
+
+ggplot(plotdata_AlphaPower_c, aes(x=Time, y=AlphaPower_c, color=Hemifield,fill=Hemifield)) + geom_line(size=1.4) + 
+    geom_ribbon(aes(ymin=AlphaPower_c-se, ymax=AlphaPower_c+se), alpha = 0.3, colour=NA) +
+    geom_hline(yintercept=0, alpha = 0.5) + geom_vline(xintercept=0, alpha = 0.5) +   
+    coord_cartesian(ylim = c(2, 4), xlim = c(-500, 1800)) +
+    xlab("Time(ms)") + ylab("AlphaPower_c (uV)") +
+    theme(axis.title.x = element_text(face="bold", size=12),
+          axis.text.x  = element_text(face="bold", angle=0,  size=12)) +
+    theme(axis.title.y = element_text(face="bold", size=12),
+          axis.text.y  = element_text(angle=0, vjust=0.5, size=12)) +
+    theme(legend.title = element_text(size=11, face="bold")) +
+    theme(legend.text = element_text(size = 11, face = "bold")) +
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+          panel.background = element_blank(), axis.line = element_line(colour = "black")) + facet_wrap(~ Group) +
+    theme(panel.margin = unit(2, "lines"))
+
+#AlphaPower_i 
+plotdata_AlphaPower_i <- summarySEwithin(data_AlphaPower, measurevar="AlphaPower_i", betweenvars=c("Group"), withinvars=c("Time", "Hemifield"), idvar="ID")
+plotdata_AlphaPower_i$Time<-as.numeric(as.character(plotdata_AlphaPower_i$Time))
+summary(plotdata_AlphaPower_i$Time)
+
+ggplot(plotdata_AlphaPower_i, aes(x=Time, y=AlphaPower_i, color=Hemifield,fill=Hemifield)) + geom_line(size=1.4) + 
+    geom_ribbon(aes(ymin=AlphaPower_i-se, ymax=AlphaPower_i+se), alpha = 0.3, colour=NA) +
+    geom_hline(yintercept=0, alpha = 0.5) + geom_vline(xintercept=0, alpha = 0.5) +   
+    coord_cartesian(ylim = c(2, 4), xlim = c(-500, 1800)) +
+    xlab("Time(ms)") + ylab("AlphaPower_i (uV)") +
+    theme(axis.title.x = element_text(face="bold", size=12),
+          axis.text.x  = element_text(face="bold", angle=0,  size=12)) +
+    theme(axis.title.y = element_text(face="bold", size=12),
+          axis.text.y  = element_text(angle=0, vjust=0.5, size=12)) +
+    theme(legend.title = element_text(size=11, face="bold")) +
+    theme(legend.text = element_text(size = 11, face = "bold")) +
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+          panel.background = element_blank(), axis.line = element_line(colour = "black")) + facet_wrap(~ Group) +
+    theme(panel.margin = unit(2, "lines"))
+
+
+###################Plot AlphaPower_c and AlphaPower_i trace in the same plot #####################
+plotdata_AlphaPower_i$Hemisphere<-rep("Ipsilateral",length(plotdata_AlphaPower_i[,1]))
+names(plotdata_AlphaPower_i)[names(plotdata_AlphaPower_i)=="AlphaPower_i"] <- "AlphaPower"
+names(plotdata_AlphaPower_i)[names(plotdata_AlphaPower_i)=="AlphaPower_i_norm"] <- "AlphaPower_norm"
+
+plotdata_AlphaPower_c$Hemisphere<-rep("Contralateral",length(plotdata_AlphaPower_c[,1]))
+names(plotdata_AlphaPower_c)[names(plotdata_AlphaPower_c)=="AlphaPower_c"] <- "AlphaPower"
+names(plotdata_AlphaPower_c)[names(plotdata_AlphaPower_c)=="AlphaPower_c_norm"] <- "AlphaPower_norm"
+plotdata_AlphaPower<-rbind(plotdata_AlphaPower_i,plotdata_AlphaPower_c)
+
+
+
+ggplot(plotdata_AlphaPower, aes(x=Time, y=AlphaPower, color=Hemifield,fill=Hemifield, linetype=Hemisphere)) + 
+    geom_line(size=1.4) + geom_ribbon(aes(ymin=AlphaPower-ci, ymax=AlphaPower+ci), alpha = 0.3, colour=NA) + 
+        geom_hline(yintercept=0, alpha = 0.5) + geom_vline(xintercept=0, alpha = 0.5) +   
+    coord_cartesian(ylim = c(2, 4), xlim = c(-500, 1800)) +
+    xlab("Time (ms)") + ylab("AlphaPower (uV)") +
+    theme(axis.title.x = element_text(face="bold", size=12),
+          axis.text.x  = element_text(face="bold", angle=0,  size=12)) +
+    theme(axis.title.y = element_text(face="bold", size=12),
+          axis.text.y  = element_text(angle=0, vjust=0.5, size=12)) +
+    theme(legend.title = element_text(size=11, face="bold")) +
+    theme(legend.text = element_text(size = 11, face = "bold")) +
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+          panel.background = element_blank(), axis.line = element_line(colour = "black")) + facet_wrap(~ Group) +
+     theme(panel.margin = unit(1.5, "lines"))
+
+
+
+
+
+#AlphaPower_c by Participant
+plotdata_AlphaPower_c <- summarySEwithin(data_AlphaPower, measurevar="AlphaPower_c", betweenvars=c("ID"), withinvars=c("Time", "Hemifield"), idvar="ID")
+plotdata_AlphaPower_c$Time<-as.numeric(as.character(plotdata_AlphaPower_c$Time))
+summary(plotdata_AlphaPower_c$Time)
+
+ggplot(plotdata_AlphaPower_c, aes(x=Time, y=AlphaPower_c, color=Hemifield,fill=Hemifield)) + geom_line(size=1.4) + 
+    geom_ribbon(aes(ymin=AlphaPower_c-se, ymax=AlphaPower_c+se), alpha = 0.3, colour=NA) +
+    geom_hline(yintercept=0, alpha = 0.5) + geom_vline(xintercept=0, alpha = 0.5) +   
+    coord_cartesian(ylim = c(0, 6), xlim = c(-500, 1800)) +
+    xlab("Time(ms)") + ylab("AlphaPower_c (uV)") +
+    theme(axis.title.x = element_text(face="bold", size=12),
+          axis.text.x  = element_text(face="bold", angle=0,  size=12)) +
+    theme(axis.title.y = element_text(face="bold", size=12),
+          axis.text.y  = element_text(angle=0, vjust=0.5, size=12)) +
+    theme(legend.title = element_text(size=11, face="bold")) +
+    theme(legend.text = element_text(size = 11, face = "bold")) +
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+          panel.background = element_blank(), axis.line = element_line(colour = "black")) + facet_wrap(~ ID) +
+    theme(panel.margin = unit(2, "lines"))
+
+
+
+```
+

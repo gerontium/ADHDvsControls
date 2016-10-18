@@ -102,16 +102,21 @@ for s=1:length(allsubj)
         load([path 'Controls\' subject_folder{s} '\' 'avN2i_GrandAverage_peak_amp_index.mat']);
         load([path 'Controls\' subject_folder{s} '\' 'avN2c_ParticipantLevel_peak_amp_index.mat']);
         load([path 'Controls\' subject_folder{s} '\' 'avN2i_ParticipantLevel_peak_amp_index.mat']);
+        load([path 'Controls\' subject_folder{s} '\' 'ROIs.mat']);
+        LH_ROI=LH_ROI_s;
+        RH_ROI=RH_ROI_s;
     elseif ismember(subject_folder{s},subject_folder_ADHD)
         load([path 'ADHD\' subject_folder{s} '\' allsubj{s} matfile]);
         load([path 'ADHD\' subject_folder{s} '\' 'avN2c_GrandAverage_peak_amp_index.mat']);
         load([path 'ADHD\' subject_folder{s} '\' 'avN2i_GrandAverage_peak_amp_index.mat']);
         load([path 'ADHD\' subject_folder{s} '\' 'avN2c_ParticipantLevel_peak_amp_index.mat']);
         load([path 'ADHD\' subject_folder{s} '\' 'avN2i_ParticipantLevel_peak_amp_index.mat']);
+        load([path 'ADHD\' subject_folder{s} '\' 'ROIs.mat']);
     else
         keyboard
     end
-    
+        LH_ROI=LH_ROI_s;
+        RH_ROI=RH_ROI_s;
     
     %if the final trial was a miss there will be no RT recorded, just need
     %to add a zero for RT in that case
@@ -359,12 +364,9 @@ for s=1:length(allsubj)
         master_matrix_R(total_numtr,25)=artifact_BLintTo450ms_n(trial);
         
         %% 26. Pre-target Alpha Power Left Hemi:
-        LH_ROI = [22,23,25,26,27];
         master_matrix_R(total_numtr,26)=squeeze(mean(mean(Alpha([LH_ROI],find(Alpha_smooth_time==-500):find(Alpha_smooth_time==0),trial),1),2));
         %% 27. Pre-target Alpha Power Right Hemi:
-        RH_ROI= [59,60,62,63,64];
-        master_matrix_R(total_numtr,27)=squeeze(mean(mean(Alpha([RH_ROI],find(Alpha_smooth_time==-500):find(Alpha_smooth_time==0),trial),1),2));
-        
+        master_matrix_R(total_numtr,27)=squeeze(mean(mean(Alpha([RH_ROI],find(Alpha_smooth_time==-500):find(Alpha_smooth_time==0),trial),1),2));     
         %% 28.  Pre-target AlphaAsym:
         if master_matrix_R(total_numtr,26) && master_matrix_R(total_numtr,27)
             master_matrix_R(total_numtr,28)=(master_matrix_R(total_numtr,27)-master_matrix_R(total_numtr,26))/(master_matrix_R(total_numtr,27)+master_matrix_R(total_numtr,26)); %(RightHemiROI - LeftHemiROI)/(RightHemiROI + LeftHemiROI)
@@ -474,6 +476,10 @@ for s=1:length(allsubj)
         
         %% 37. N2i Amp (using PARTICIPANT LEVEL AVERAGE to define N2i measurement window):
         master_matrix_R(total_numtr,37)=mean(mean(erp(ch_LR(TargetSide,:),avN2i_ParticipantLevel_peak_amp_index_s(TargetSide)-window:avN2i_ParticipantLevel_peak_amp_index_s(TargetSide)+window,trial),1));
+        %% 38. Post-target Alpha Power Left Hemi:
+        master_matrix_R(total_numtr,38)=squeeze(mean(mean(Alpha([LH_ROI],find(Alpha_smooth_time==300):find(Alpha_smooth_time==1000),trial),1),2));
+        %% 39. Pre-target Alpha Power Right Hemi:
+        master_matrix_R(total_numtr,39)=squeeze(mean(mean(Alpha([RH_ROI],find(Alpha_smooth_time==300):find(Alpha_smooth_time==1000),trial),1),2));
     end
 end
 % find empty cells in ID_vector
