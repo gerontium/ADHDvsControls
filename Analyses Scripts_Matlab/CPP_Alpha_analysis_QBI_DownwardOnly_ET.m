@@ -114,9 +114,9 @@ for f=1:length(files)
     EEG_HPF.data = EEG_HPF.data - repmat(mean(EEG_HPF.data([1:nchan],:),1),[nchan,1]);
                
     %% Sync up the Eyelink data:
-%     if ~exist(ET_matfiles{f}, 'file') %DN: if ET matfile has NOT has been saved previouslty,
+    if ~exist(ET_matfiles{f}, 'file') %DN: if ET matfile has NOT has been saved previouslty,
         FixEyelinkMessages %then calculate and save it now
-%     end
+    end
         
     load(ET_matfiles{f}) %DN: load the ET mat file
     %Add an extra 4 rows into the EEG struct - 'TIME'

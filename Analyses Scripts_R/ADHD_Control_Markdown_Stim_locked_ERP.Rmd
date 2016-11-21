@@ -14,8 +14,6 @@ output:
 ```{r Load and Pre-Process the single trial data_Stim_locked_ERP, echo=FALSE, include=FALSE}
 
 setwd(("C:/GitHub/ADHDvsControls/Analyses Scripts_R"))
-# setwd(("C:/Users/Dan/Documents/GitHub/ADHDvsControls/Analyses Scripts_R"))
-
 
 
 ## Install relevant libraries 
@@ -167,6 +165,9 @@ data_Stim_locked_ERP2<-data_Stim_locked_ERP[!data_Stim_locked_ERP$Blinkneg100_45
 data_Stim_locked_ERP2<-data_Stim_locked_ERP2[data_Stim_locked_ERP2$Accuracy=="Hit",]
 
 
+source("summarySE.R") 
+source("summarySEwithin.R") #function to calculate Std.Er of mean
+source("normDataWithin.R")
 #N2c  facet wrap by group
 plotdata_N2c <- summarySEwithin(data_Stim_locked_ERP2, measurevar="N2c", betweenvars=c("Group"), withinvars=c("Time", "Hemifield"), idvar="ID")
 plotdata_N2c$Time<-as.numeric(as.character(plotdata_N2c$Time))
@@ -186,6 +187,9 @@ ggplot(plotdata_N2c, aes(x=Time, y=N2c, color=Hemifield,fill=Hemifield)) + geom_
     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
           panel.background = element_blank(), axis.line = element_line(colour = "black")) + facet_wrap(~ Group) +
     theme(panel.margin = unit(2, "lines"))
+
+
+
 
 
 #N2i 
@@ -262,4 +266,103 @@ save(StimLockedN2_Plot_Hemisphere, file="StimLockedN2_Plot_Hemisphere.gg")
 
 ```
 
+
+
+```{r}
+require(dplyr)
+require(zoo)
+require(broom)
+############################################################################################################
+
+plot_data<-data_Stim_locked_ERP2 %>% 
+            filter(Time>(-100), Time<800) %>%
+            group_by(Hemifield, Time) %>%  
+            do(N2c = tidy(lmer(log(RT) ~ N2c + (1|Group/ID) + (1|ITI), data = ., REML=F))$coefficients[2,3]) %>%
+            gather(., key, t_value, -Hemifield, -Time) %>%
+            mutate(t_value= as.double(t_value)) %>% 
+            arrange(key)
+
+plot_data <- plot_data %>% arrange(key)
+
+
+ggplot(plot_data, aes(Time, t_value, colour=Hemifield)) + geom_line(size=1.4) + 
+    geom_hline(yintercept=2, alpha = 0.5,  size=1.4) + geom_hline(yintercept=-2, alpha = 0.5,  size=1.4) + geom_vline(xintercept=0, alpha = 0.5,  size=1.4) +
+     coord_cartesian(ylim = c(-5, 8), xlim = c(-100, 1700)) +
+    theme(axis.title.x = element_text(face="bold", size=14),
+          axis.text.x  = element_text(face="bold", angle=0,  size=14)) +
+    theme(axis.title.y = element_text(face="bold", size=14),
+          axis.text.y  = element_text(angle=0, vjust=0.5, size=14)) +
+    theme(plot.title = element_text(face="bold", size=16)) +
+    theme(strip.text.x = element_text(size = 13)) 
+
+
+
+
+
+############################################################################################################
+
+data_Stim_locked_ERP2<-data_Stim_locked_ERP2 %>% 
+    group_by(ID, Trial) %>% 
+    arrange(Time) %>% 
+    mutate(N2c_rollmean = rollmean(x = N2c, k=50,  fill = NA),
+           N2i_rollmean = rollmean(x = N2i, k=50,  fill = NA), 
+           CPP_rollmean = rollmean(x = CPP, k=50,  fill = NA),
+           xyBar =            rollmean(Time*CPP,k=50,  fill = NA),
+           xBar =             rollmean(Time,        k=50,  fill = NA),
+           yBar =             rollmean(CPP,     k=50,  fill = NA),
+           x2Bar =            rollmean(Time^2,      k=50,  fill = NA),
+           CPP_rollSlope = (xyBar - xBar*yBar) / (x2Bar - xBar^2)) 
+
+
+##Calculate t_values for each of the rolling variables ability to predict log(RT) at each time point
+plot_data<-data_Stim_locked_ERP2 %>% 
+            filter(Time>-100, Time<1700) %>% 
+            group_by(Hemifield, Time) %>%  
+            do(N2c_Amplitude = summary(lmer(log(RT) ~ N2c_rollmean + (1|ID) + (1|ITI), data = ., REML=F))$coefficients[2,3],
+               N2i_Amplitude = summary(lmer(log(RT) ~ N2i_rollmean + (1|ID) + (1|ITI), data = ., REML=F))$coefficients[2,3],
+               CPP_Amplitude = summary(lmer(log(RT) ~ CPP_rollmean + (1|ID) + (1|ITI), data = ., REML=F))$coefficients[2,3]) %>%
+            gather(., key, t_value, -Hemifield, -Time) %>%
+            mutate(t_value= as.double(t_value)) %>% 
+            arrange(key)
+
+plot_data <- plot_data %>% arrange(key)
+
+#Plot ability to predict log(RT) at each time point
+png("All_Participants.png",  width = 10*600, height = 10*600, units = "px", res = 600)
+ggplot(plot_data, aes(Time, t_value, colour=Hemifield)) + geom_line(size=1.4) + 
+    geom_hline(yintercept=2, alpha = 0.5,  size=1.4) + geom_hline(yintercept=-2, alpha = 0.5,  size=1.4) + geom_vline(xintercept=0, alpha = 0.5,  size=1.4) +
+     coord_cartesian(ylim = c(-5, 5), xlim = c(-100, 700)) +
+    theme(axis.title.x = element_text(face="bold", size=14),
+          axis.text.x  = element_text(face="bold", angle=0,  size=14)) +
+    theme(axis.title.y = element_text(face="bold", size=14),
+          axis.text.y  = element_text(angle=0, vjust=0.5, size=14)) +
+    theme(plot.title = element_text(face="bold", size=16)) +
+    theme(strip.text.x = element_text(size = 13)) +
+    ggtitle("Signal's relationship with forthcoming RT \n (t-values over +/- 2 are significant)") +
+    facet_wrap(~key)
+dev.off()    
+
+
+##################################################
+
+data_Stim_locked_ERP2 %>% 
+            filter(Time>(-100), Time<500) %>%
+            group_by(Group, Time) %>%  
+            do(N2c = tidy(lmer(log(RT) ~ N2c_rollmean:Hemifield + (1|ID) + (1|ITI), data = ., REML=F))) %>% 
+    unnest(N2c) %>% 
+    filter(term=="N2c_rollmean:HemifieldLeft"|term=="N2c_rollmean:HemifieldRight") %>%
+    arrange(Time) %>%
+    ggplot(aes(Time, statistic, colour=Group, linetype=term)) + geom_line(size=1.4) + 
+    geom_hline(yintercept=2, alpha = 0.5,  size=1.4) + 
+    geom_hline(yintercept=-2, alpha = 0.5,  size=1.4) + 
+    geom_vline(xintercept=0, alpha = 0.5, size=1.4) +
+     coord_cartesian(ylim = c(-5, 8), xlim = c(-100, 500)) +
+    theme(axis.title.x = element_text(face="bold", size=14),
+          axis.text.x  = element_text(face="bold", angle=0,  size=14)) +
+    theme(axis.title.y = element_text(face="bold", size=14),
+          axis.text.y  = element_text(angle=0, vjust=0.5, size=14)) +
+    theme(plot.title = element_text(face="bold", size=16)) +
+    theme(strip.text.x = element_text(size = 13)) 
+
+```
 

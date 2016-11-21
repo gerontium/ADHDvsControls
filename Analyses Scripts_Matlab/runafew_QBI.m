@@ -146,8 +146,8 @@ h = waitbar(0,'Please wait...');
 steps = length(allsubj);
 step = file_start-1;
 for s=file_start:length(allsubj)
-    path = 'C:\Users\newmand\Dropbox\Monash\My Papers\ADHD vs Controls EEG QBI\Dots Data Downward\'; 
-%     path='C:\Users\Dan\Dropbox\Monash\My Papers\ADHD vs Controls EEG QBI\Dots Data Downward\';
+%     path = 'C:\Users\newmand\Dropbox\Monash\My Papers\ADHD vs Controls EEG QBI\Dots Data Downward\'; 
+    path='S:\R-MNHS-SPP\Bellgrove-data\4. Dan Newman\QBI ADHD dots data\Dots Data Downward\';
     if ismember(subject_folder{s},subject_folder_ADHD)
        path= [path 'ADHD\'];
     elseif ismember(subject_folder{s},subject_folder_Control)

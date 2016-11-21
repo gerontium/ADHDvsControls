@@ -17,7 +17,7 @@ location<-"Monash"
 
 if (location=="Monash") {
     setwd(("C:/GitHub/ADHDvsControls/Analyses Scripts_R"))
-} else if (location=="DansLaptop") {q
+} else if (location=="DansLaptop") {
     setwd(("C:/Users/Dan/Documents/GitHub/ADHDvsControls/Analyses Scripts_R"))
 } else setwd(("~"))
 
@@ -205,9 +205,6 @@ data$sqrt_RT<-sqrt(data$RT)
 ggplot(data, aes(RT))  + geom_histogram(aes(y=..count..), colour="black", fill="white") + facet_wrap(~ Group)
 ggplot(data, aes(log_RT))  + geom_histogram(aes(y=..count..), colour="black", fill="white") + facet_wrap(~ Group)
 ggplot(data, aes(sqrt_RT))  + geom_histogram(aes(y=..count..), colour="black", fill="white") + facet_wrap(~ Group)
-
-ggplot(data, aes(RT))  + geom_histogram(aes(y=..count..), colour="black", fill="white") + facet_wrap(~ ID)
-
 
 #####Z-score each participant's log_RT data ####
 data$IDbyITIbyHemifield<-interaction(data$ID, data$ITI, data$Hemifield)
@@ -398,11 +395,6 @@ participant_level_long$Group_by_measure_type<-as.factor(participant_level_long$G
 drops <- c("data.Z")
 participant_level_long<-participant_level_long[ , !(names(participant_level_long) %in% drops)]
 
-dan<-participant_level_long %>%  
-                    spread(Group_by_measure_type, data) 
-
-
-
 
 #Look for participant level outliers in RT and RT-asymmetry
 #calculate RT_Asym.Z inside Group and save it 
@@ -440,8 +432,9 @@ data <-data[data$ID %in% participant_level$ID, ]
 
 
 #Save the participant level file as SPSS data folr
-library(haven)
-write_sav(participant_level, file.path(getwd(), "participant_level_data.sav"))
+# library(haven)
+# write_sav(participant_level, file.path(getwd(), "participant_level_data.sav"))
+
 ```
 
 
@@ -768,7 +761,7 @@ print(Group_by_Hemifield_Perm);
 
 ###################################################################
 ANOVA_data<- participant_level %>%
-    select(ID,Group, N2i_LeftTarget, N2i_RightTarget) %>%
+    select(ID, Group, N2i_LeftTarget_GA, N2i_RightTarget_GA) %>%
     na.omit() %>%
     gather(Hemifield, dv, -ID, -Group)
 
@@ -826,7 +819,7 @@ print(Group_by_Hemifield_Perm);
 
 ###################################################################
 ANOVA_data<- participant_level %>%
-    select(ID,Group, N2c_LeftTarget, N2c_RightTarget) %>%
+    select(ID,Group, N2c_LeftTarget_GA, N2c_RightTarget_GA) %>%
     na.omit() %>%
     gather(Hemifield, dv, -ID, -Group)
 
@@ -984,12 +977,12 @@ Perm_data<- participant_level %>%
     mutate(ID=factor(ID)) 
 
 log <- capture.output({
-   Group_by_Hemifield_Perm <- ezPerm(data = Perm_data
+   Group_by_Hemifield_Perm <- ezPerm(data = as.data.frame(Perm_data)
                           , dv = .(dv)
                           , wid = .(ID)
                           , within = .(Hemifield)
                           , between = .(Group)
-                          ,between=Group, perms = 1000);
+                          ,perms = 1000);
  })
 print("Factorial Permutation test for the Group*Hemifield effect on RT:")
 print(Group_by_Hemifield_Perm);
