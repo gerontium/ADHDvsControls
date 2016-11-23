@@ -274,32 +274,6 @@ require(zoo)
 require(broom)
 ############################################################################################################
 
-plot_data<-data_Stim_locked_ERP2 %>% 
-            filter(Time>(-100), Time<800) %>%
-            group_by(Hemifield, Time) %>%  
-            do(N2c = tidy(lmer(log(RT) ~ N2c + (1|Group/ID) + (1|ITI), data = ., REML=F))$coefficients[2,3]) %>%
-            gather(., key, t_value, -Hemifield, -Time) %>%
-            mutate(t_value= as.double(t_value)) %>% 
-            arrange(key)
-
-plot_data <- plot_data %>% arrange(key)
-
-
-ggplot(plot_data, aes(Time, t_value, colour=Hemifield)) + geom_line(size=1.4) + 
-    geom_hline(yintercept=2, alpha = 0.5,  size=1.4) + geom_hline(yintercept=-2, alpha = 0.5,  size=1.4) + geom_vline(xintercept=0, alpha = 0.5,  size=1.4) +
-     coord_cartesian(ylim = c(-5, 8), xlim = c(-100, 1700)) +
-    theme(axis.title.x = element_text(face="bold", size=14),
-          axis.text.x  = element_text(face="bold", angle=0,  size=14)) +
-    theme(axis.title.y = element_text(face="bold", size=14),
-          axis.text.y  = element_text(angle=0, vjust=0.5, size=14)) +
-    theme(plot.title = element_text(face="bold", size=16)) +
-    theme(strip.text.x = element_text(size = 13)) 
-
-
-
-
-
-############################################################################################################
 
 data_Stim_locked_ERP2<-data_Stim_locked_ERP2 %>% 
     group_by(ID, Trial) %>% 
@@ -314,37 +288,8 @@ data_Stim_locked_ERP2<-data_Stim_locked_ERP2 %>%
            CPP_rollSlope = (xyBar - xBar*yBar) / (x2Bar - xBar^2)) 
 
 
-##Calculate t_values for each of the rolling variables ability to predict log(RT) at each time point
-plot_data<-data_Stim_locked_ERP2 %>% 
-            filter(Time>-100, Time<1700) %>% 
-            group_by(Hemifield, Time) %>%  
-            do(N2c_Amplitude = summary(lmer(log(RT) ~ N2c_rollmean + (1|ID) + (1|ITI), data = ., REML=F))$coefficients[2,3],
-               N2i_Amplitude = summary(lmer(log(RT) ~ N2i_rollmean + (1|ID) + (1|ITI), data = ., REML=F))$coefficients[2,3],
-               CPP_Amplitude = summary(lmer(log(RT) ~ CPP_rollmean + (1|ID) + (1|ITI), data = ., REML=F))$coefficients[2,3]) %>%
-            gather(., key, t_value, -Hemifield, -Time) %>%
-            mutate(t_value= as.double(t_value)) %>% 
-            arrange(key)
-
-plot_data <- plot_data %>% arrange(key)
-
-#Plot ability to predict log(RT) at each time point
-png("All_Participants.png",  width = 10*600, height = 10*600, units = "px", res = 600)
-ggplot(plot_data, aes(Time, t_value, colour=Hemifield)) + geom_line(size=1.4) + 
-    geom_hline(yintercept=2, alpha = 0.5,  size=1.4) + geom_hline(yintercept=-2, alpha = 0.5,  size=1.4) + geom_vline(xintercept=0, alpha = 0.5,  size=1.4) +
-     coord_cartesian(ylim = c(-5, 5), xlim = c(-100, 700)) +
-    theme(axis.title.x = element_text(face="bold", size=14),
-          axis.text.x  = element_text(face="bold", angle=0,  size=14)) +
-    theme(axis.title.y = element_text(face="bold", size=14),
-          axis.text.y  = element_text(angle=0, vjust=0.5, size=14)) +
-    theme(plot.title = element_text(face="bold", size=16)) +
-    theme(strip.text.x = element_text(size = 13)) +
-    ggtitle("Signal's relationship with forthcoming RT \n (t-values over +/- 2 are significant)") +
-    facet_wrap(~key)
-dev.off()    
-
-
 ##################################################
-
+#Plot N2c
 data_Stim_locked_ERP2 %>% 
             filter(Time>(-100), Time<500) %>%
             group_by(Group, Time) %>%  
@@ -356,13 +301,59 @@ data_Stim_locked_ERP2 %>%
     geom_hline(yintercept=2, alpha = 0.5,  size=1.4) + 
     geom_hline(yintercept=-2, alpha = 0.5,  size=1.4) + 
     geom_vline(xintercept=0, alpha = 0.5, size=1.4) +
-     coord_cartesian(ylim = c(-5, 8), xlim = c(-100, 500)) +
+     coord_cartesian(ylim = c(-4, 4), xlim = c(-100, 500)) +
     theme(axis.title.x = element_text(face="bold", size=14),
           axis.text.x  = element_text(face="bold", angle=0,  size=14)) +
     theme(axis.title.y = element_text(face="bold", size=14),
           axis.text.y  = element_text(angle=0, vjust=0.5, size=14)) +
     theme(plot.title = element_text(face="bold", size=16)) +
     theme(strip.text.x = element_text(size = 13)) 
+
+
+##################################################
+#Plot N2i
+data_Stim_locked_ERP2 %>% 
+            filter(Time>(-100), Time<500) %>%
+            group_by(Group, Time) %>%  
+            do(N2i = tidy(lmer(log(RT) ~ N2i_rollmean:Hemifield + (1|ID) + (1|ITI), data = ., REML=F))) %>% 
+    unnest(N2i) %>% 
+    filter(term=="N2i_rollmean:HemifieldLeft"|term=="N2i_rollmean:HemifieldRight") %>%
+    arrange(Time) %>%
+    ggplot(aes(Time, statistic, colour=Group, linetype=term)) + geom_line(size=1.4) + 
+    geom_hline(yintercept=2, alpha = 0.5,  size=1.4) + 
+    geom_hline(yintercept=-2, alpha = 0.5,  size=1.4) + 
+    geom_vline(xintercept=0, alpha = 0.5, size=1.4) +
+     coord_cartesian(ylim = c(-4, 4), xlim = c(-100, 500)) +
+    theme(axis.title.x = element_text(face="bold", size=14),
+          axis.text.x  = element_text(face="bold", angle=0,  size=14)) +
+    theme(axis.title.y = element_text(face="bold", size=14),
+          axis.text.y  = element_text(angle=0, vjust=0.5, size=14)) +
+    theme(plot.title = element_text(face="bold", size=16)) +
+    theme(strip.text.x = element_text(size = 13)) 
+
+##################################################
+#CPP_rollmean
+
+data_Stim_locked_ERP2 %>% 
+            filter(Time>(-100), Time<1000) %>%
+            group_by(Group, Time) %>%  
+            do(CPP = tidy(lmer(log(RT) ~ CPP_rollmean:Hemifield + (1|ID) + (1|ITI), data = ., REML=F))) %>% 
+    unnest(CPP) %>% 
+    filter(term=="CPP_rollmean:HemifieldLeft"|term=="CPP_rollmean:HemifieldRight") %>%
+    arrange(Time) %>%
+    ggplot(aes(Time, statistic, colour=Group, linetype=term)) + geom_line(size=1.4) + 
+    geom_hline(yintercept=2, alpha = 0.5,  size=1.4) + 
+    geom_hline(yintercept=-2, alpha = 0.5,  size=1.4) + 
+    geom_vline(xintercept=0, alpha = 0.5, size=1.4) +
+     coord_cartesian(ylim = c(-6, 6), xlim = c(-100, 1000)) +
+    theme(axis.title.x = element_text(face="bold", size=14),
+          axis.text.x  = element_text(face="bold", angle=0,  size=14)) +
+    theme(axis.title.y = element_text(face="bold", size=14),
+          axis.text.y  = element_text(angle=0, vjust=0.5, size=14)) +
+    theme(plot.title = element_text(face="bold", size=16)) +
+    theme(strip.text.x = element_text(size = 13)) 
+
+##################################################
 
 ```
 

@@ -101,12 +101,8 @@ for s=1:length(allsubj)
     %     load([path subject_folder{s} '\' allsubj{s} '_ROIs.mat']); %load the participant's individualised Alpha ROI electrodes sensitive to Light
     if ismember(subject_folder{s},subject_folder_Control)
         load([path 'Controls\' subject_folder{s} '\' allsubj{s} matfile]);
-        load([path 'Controls\' subject_folder{s} '\' 'avN2c_peak_amp_index.mat']);
-        load([path 'Controls\' subject_folder{s} '\' 'avN2i_peak_amp_index.mat']);
     elseif ismember(subject_folder{s},subject_folder_ADHD)
         load([path 'ADHD\' subject_folder{s} '\' allsubj{s} matfile]);
-        load([path 'ADHD\' subject_folder{s} '\' 'avN2c_peak_amp_index.mat']);
-        load([path 'ADHD\' subject_folder{s} '\' 'avN2i_peak_amp_index.mat']);
     else
         keyboard
     end
@@ -291,6 +287,12 @@ for s=1:length(allsubj)
     for trial=1:length(allTrials) % get rid of last trigger?
         total_numtr = total_numtr+1;      
         ID_vector(current:current+(length(t)-1)) = subject_folder(s);
+        
+        if ismember(allTrials(trial),targcodes(1,:))% any left patch targcode. i.e. left target
+            TargetSide=1;
+        else
+            TargetSide=2;
+        end
         %% 1. Subject number:
         master_matrix_R(current:current+(length(t)-1),1) = s;
         %% 2. ADHD or Control (1 or 2):
